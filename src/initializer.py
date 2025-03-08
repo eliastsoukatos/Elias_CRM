@@ -1220,8 +1220,8 @@ sys.path.insert(0, current_dir)
 project_root = os.path.dirname(os.path.dirname(current_dir))
 os.environ['PROJECT_ROOT'] = project_root
 
-# Directly use absolute database path
-DB_PATH = "/home/eliastsoukatos/Documents/Python/CRM/databases/database.db"
+# Use environment variable for database path
+DB_PATH = os.path.join(os.environ.get('PROJECT_ROOT', project_root), 'databases', 'database.db')
 
 def get_db_connection():
     try:
@@ -1486,8 +1486,11 @@ input("\\nPress Enter to continue...")
         try:
             import sqlite3
             
-            # Connect to database directly
-            db_path = "/home/eliastsoukatos/Documents/Python/CRM/databases/database.db"
+            # Connect to database with PROJECT_ROOT environment variable
+            # Get the project root using environment variable if available
+            project_root = os.environ.get('PROJECT_ROOT', 
+                os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+            db_path = os.path.join(project_root, 'databases', 'database.db')
             conn = sqlite3.connect(db_path)
             conn.row_factory = sqlite3.Row
             
@@ -2897,7 +2900,11 @@ subprocess.call(command)
                     
                     # Execute the script with environment
                     env = os.environ.copy()
-                    env['PROJECT_ROOT'] = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    # Use the PROJECT_ROOT env var that was explicitly set
+                    if 'PROJECT_ROOT' in os.environ:
+                        env['PROJECT_ROOT'] = os.environ['PROJECT_ROOT']
+                    else:
+                        env['PROJECT_ROOT'] = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
                     
                     # Start the process and wait a bit before cleaning up
                     subprocess.Popen([sys.executable, temp_script], env=env)

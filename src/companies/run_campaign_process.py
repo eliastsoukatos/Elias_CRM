@@ -11,9 +11,14 @@ src_companies_dir = os.path.join(current_dir, 'src_companies')
 if src_companies_dir not in sys.path:
     sys.path.insert(0, src_companies_dir)
 
-# Set up project root path for database access
-project_root = os.path.dirname(os.path.dirname(current_dir))
-os.environ['PROJECT_ROOT'] = project_root
+# Set up project root path for database access if not already set
+if 'PROJECT_ROOT' not in os.environ:
+    project_root = os.path.dirname(os.path.dirname(current_dir))
+    os.environ['PROJECT_ROOT'] = project_root
+else:
+    # Get the existing PROJECT_ROOT from the environment
+    project_root = os.environ['PROJECT_ROOT']
+    print(f"Using PROJECT_ROOT from environment: {project_root}")
 
 # ANSI color codes
 class Colors:
@@ -31,12 +36,27 @@ def get_db_connection():
     """
     Create a database connection to the SQLite database.
     """
-    # Use platform-independent path using environment variable or construct it
+    # First, check if PROJECT_ROOT is set in the environment
     project_root = os.environ.get('PROJECT_ROOT')
+    
+    # If not set, calculate it
     if not project_root:
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        # Store it for future use
+        os.environ['PROJECT_ROOT'] = project_root
     
+    # Create the database path using the project root
     db_path = os.path.join(project_root, 'databases', 'database.db')
+    
+    # Ensure the database directory exists
+    db_folder = os.path.join(project_root, 'databases')
+    if not os.path.exists(db_folder):
+        try:
+            os.makedirs(db_folder)
+            print(f"{Colors.GREEN}Created database directory at: {db_folder}{Colors.END}")
+        except Exception as e:
+            print(f"{Colors.RED}Could not create database directory at {db_folder}: {e}{Colors.END}")
+            # Fall back to user home directory below
     
     print(f"{Colors.CYAN}Connecting to database at: {db_path}{Colors.END}")
     
@@ -60,6 +80,10 @@ def get_db_connection():
             print(f"{Colors.YELLOW}Trying alternate database path: {alt_db_path}{Colors.END}")
             conn = sqlite3.connect(alt_db_path)
             conn.row_factory = sqlite3.Row
+            
+            # Store this path for future use
+            os.environ['PROJECT_ROOT'] = user_home
+            
             return conn
         except Error as e2:
             print(f"{Colors.RED}Database connection failed{Colors.END}")
