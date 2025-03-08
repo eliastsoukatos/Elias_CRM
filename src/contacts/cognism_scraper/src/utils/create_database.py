@@ -1,26 +1,51 @@
 import sqlite3
 import os
 
-# Use the main database path - hardcode the path to ensure it works
-DB_NAME = "/home/eliastsoukatos/Documents/Python/CRM/databases/database.db"
-
+# Dynamically determine the database path
 def get_db_path():
     """Gets the absolute path to the database."""
+    # Get project root using relative path from this file
+    current_file = os.path.abspath(__file__)
+    utils_dir = os.path.dirname(current_file)
+    src_dir = os.path.dirname(utils_dir)
+    cognism_dir = os.path.dirname(src_dir)
+    contacts_dir = os.path.dirname(cognism_dir)
+    src_parent = os.path.dirname(contacts_dir)
+    project_root = os.path.dirname(src_parent)
+    
+    # First try the project root path
+    db_path = os.path.join(project_root, 'databases', 'database.db')
+    db_dir = os.path.dirname(db_path)
+    
     # Ensure database directory exists
-    db_dir = os.path.dirname(DB_NAME)
-    if not os.path.exists(db_dir):
-        try:
-            os.makedirs(db_dir, exist_ok=True)
-            print(f"Created database directory: {db_dir}")
-        except Exception as e:
-            print(f"Error creating database directory: {e}")
-    
-    # Print debug info
-    print(f"Using database at: {DB_NAME}")
-    print(f"Database exists: {os.path.exists(DB_NAME)}")
-    print(f"Database directory exists: {os.path.exists(db_dir)}")
-    
-    return DB_NAME
+    try:
+        if not os.path.exists(db_dir):
+            try:
+                os.makedirs(db_dir, exist_ok=True)
+                print(f"Created database directory: {db_dir}")
+            except Exception as e:
+                print(f"Error creating database directory at {db_dir}: {e}")
+                # Fall back to user home directory
+                user_home = os.path.expanduser("~")
+                db_dir = os.path.join(user_home, 'databases')
+                db_path = os.path.join(db_dir, 'database.db')
+                
+                if not os.path.exists(db_dir):
+                    os.makedirs(db_dir, exist_ok=True)
+                    print(f"Created fallback database directory: {db_dir}")
+        
+        # Print debug info
+        print(f"Using database at: {db_path}")
+        print(f"Database exists: {os.path.exists(db_path)}")
+        print(f"Database directory exists: {os.path.exists(db_dir)}")
+        
+        return db_path
+    except Exception as e:
+        print(f"Error setting up database path: {e}")
+        # Last resort - use local path
+        local_db = os.path.join(os.path.dirname(current_file), "cognism_database.db")
+        print(f"Using local database as last resort: {local_db}")
+        return local_db
 
 def create_table():
     """Creates the necessary tables if they don't exist."""

@@ -38,7 +38,7 @@ def get_db_connection():
     
     db_path = os.path.join(project_root, 'databases', 'database.db')
     
-    print(f"{Colors.CYAN}Using database path: {db_path}{Colors.END}")
+    print(f"{Colors.CYAN}Connecting to database at: {db_path}{Colors.END}")
     
     try:
         conn = sqlite3.connect(db_path)
@@ -46,7 +46,24 @@ def get_db_connection():
         return conn
     except Error as e:
         print(f"{Colors.RED}Error connecting to database: {e}{Colors.END}")
-        return None
+        
+        # Try alternate location in user's home directory
+        try:
+            user_home = os.path.expanduser("~")
+            alt_db_path = os.path.join(user_home, 'databases', 'database.db')
+            
+            # Ensure the directory exists
+            db_folder = os.path.join(user_home, 'databases')
+            if not os.path.exists(db_folder):
+                os.makedirs(db_folder)
+                
+            print(f"{Colors.YELLOW}Trying alternate database path: {alt_db_path}{Colors.END}")
+            conn = sqlite3.connect(alt_db_path)
+            conn.row_factory = sqlite3.Row
+            return conn
+        except Error as e2:
+            print(f"{Colors.RED}Database connection failed{Colors.END}")
+            return None
 
 def list_campaigns():
     """

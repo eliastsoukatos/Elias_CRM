@@ -8,9 +8,28 @@ def connect_db():
     """
     # Ensure we're connecting to the database at project root level
     import os
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    
+    # Get project root from environment variable if set, otherwise calculate
+    project_root = os.environ.get('PROJECT_ROOT')
+    
+    if not project_root:
+        # Fallback to calculating the path
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    
     db_path = os.path.join(project_root, 'databases', 'database.db')
-    return sqlite3.connect(db_path)
+    
+    try:
+        conn = sqlite3.connect(db_path)
+        return conn
+    except Error as e:
+        print(f"Error connecting to database: {e}")
+        
+        # Try alternate location in user's home directory
+        user_home = os.path.expanduser("~")
+        alt_db_path = os.path.join(user_home, 'databases', 'database.db')
+        
+        print(f"Trying alternate database path: {alt_db_path}")
+        return sqlite3.connect(alt_db_path)
 
 def insert_or_update(cursor, table, data, unique_key):
     placeholders = ', '.join(['?'] * len(data))

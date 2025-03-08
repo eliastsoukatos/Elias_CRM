@@ -17,24 +17,44 @@ if project_root not in sys.path:
     sys.path.append(project_root)
 
 # Make the database path accessible - use platform-independent path
-# Get the project root directory (two levels up from current directory)
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-db_path = os.path.join(project_root, 'databases', 'database.db')
-
-# Verify database path exists
-if not os.path.exists(db_path):
-    print(f"ERROR: Database not found at {db_path}")
+def get_db_path():
+    """Determine the appropriate database path"""
+    # Try multiple potential project root locations
     
-    # Try to find it using another method
-    alt_project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    fallback_path = os.path.join(alt_project_root, 'databases', 'database.db')
-    if os.path.exists(fallback_path):
-        print(f"Using fallback database path: {fallback_path}")
-        db_path = fallback_path
-    else:
-        print(f"Fallback database path not found either: {fallback_path}")
+    # First try from our file
+    file_dir = os.path.dirname(os.path.abspath(__file__))
+    contacts_dir = file_dir
+    src_dir = os.path.dirname(contacts_dir)
+    project_root = os.path.dirname(src_dir)
+    
+    # Try the project root first
+    db_dir = os.path.join(project_root, 'databases')
+    db_path = os.path.join(db_dir, 'database.db')
+    
+    if not os.path.exists(db_dir):
+        try:
+            os.makedirs(db_dir, exist_ok=True)
+            print(f"Created database directory: {db_dir}")
+        except Exception as e:
+            print(f"Could not create database directory: {e}")
+            
+            # Try user's home directory as fallback
+            user_home = os.path.expanduser("~")
+            db_dir = os.path.join(user_home, 'databases')
+            db_path = os.path.join(db_dir, 'database.db')
+            
+            if not os.path.exists(db_dir):
+                try:
+                    os.makedirs(db_dir, exist_ok=True)
+                    print(f"Created fallback database directory in user home: {db_dir}")
+                except Exception as e2:
+                    print(f"Error creating fallback directory: {e2}")
+    
+    print(f"Using database at: {db_path}")
+    return db_path
 
-print(f"Using database at: {db_path}")
+# Get the database path
+db_path = get_db_path()
 
 class ContactCampaignWindow(QMainWindow):
     def __init__(self):

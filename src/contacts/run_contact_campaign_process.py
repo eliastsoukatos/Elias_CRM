@@ -10,8 +10,43 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if project_root not in sys.path:
     sys.path.append(project_root)
 
-# Make the database path accessible
-db_path = os.path.join(project_root, 'databases', 'database.db')
+# Make the database path accessible with fallback
+def get_db_path():
+    """Determine the appropriate database path"""
+    # Try the project root first
+    file_dir = os.path.dirname(os.path.abspath(__file__))
+    contacts_dir = file_dir
+    src_dir = os.path.dirname(contacts_dir)
+    project_root = os.path.dirname(src_dir)
+    
+    db_dir = os.path.join(project_root, 'databases')
+    db_path = os.path.join(db_dir, 'database.db')
+    
+    # Ensure the database directory exists
+    if not os.path.exists(db_dir):
+        try:
+            os.makedirs(db_dir, exist_ok=True)
+            print(f"Created database directory: {db_dir}")
+        except Exception as e:
+            print(f"Could not create database directory: {e}")
+            
+            # Try user's home directory as fallback
+            user_home = os.path.expanduser("~")
+            db_dir = os.path.join(user_home, 'databases')
+            db_path = os.path.join(db_dir, 'database.db')
+            
+            if not os.path.exists(db_dir):
+                try:
+                    os.makedirs(db_dir, exist_ok=True)
+                    print(f"Created fallback database directory in user home: {db_dir}")
+                except Exception as e2:
+                    print(f"Error creating fallback directory: {e2}")
+    
+    print(f"Using database at: {db_path}")
+    return db_path
+
+# Get the database path
+db_path = get_db_path()
 
 def get_campaign_stats(campaign_id):
     """Get statistics for a campaign."""

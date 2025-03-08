@@ -22,8 +22,20 @@ def check_for_database():
     if os.environ.get('CRM_DEBUG', '0') == '1':
         print(f"Using database at: {db_path}")
 
+    # Make sure the database folder exists
     if not os.path.exists(db_folder):
-        os.makedirs(db_folder)
+        try:
+            os.makedirs(db_folder)
+        except Exception as e:
+            # If we can't create in the project root, use user's home directory as fallback
+            print(f"Could not create database folder in project root: {e}")
+            user_home = os.path.expanduser("~")
+            db_folder = os.path.join(user_home, 'databases')
+            db_path = os.path.join(db_folder, 'database.db')
+            print(f"Using alternate database path: {db_path}")
+            
+            if not os.path.exists(db_folder):
+                os.makedirs(db_folder)
 
     db_exists = os.path.exists(db_path)
 
