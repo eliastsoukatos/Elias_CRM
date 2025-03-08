@@ -36,46 +36,86 @@ def get_db_connection():
     """
     Create a database connection to the SQLite database.
     """
-    # First, check if PROJECT_ROOT is set in the environment
-    project_root = os.environ.get('PROJECT_ROOT')
+    # DEBUG OUTPUT
+    print(f"[DEBUG] Current working directory: {os.getcwd()}")
+    print(f"[DEBUG] __file__: {__file__}")
+    print(f"[DEBUG] abspath(__file__): {os.path.abspath(__file__)}")
+    print(f"[DEBUG] Environment vars: PROJECT_ROOT={os.environ.get('PROJECT_ROOT')}")
     
-    # If not set, calculate it
-    if not project_root:
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        # Store it for future use
-        os.environ['PROJECT_ROOT'] = project_root
+    # HARDCODED PATH FOR WINDOWS - TRY THIS FIRST
+    windows_path = "C:\\Users\\EliasTsoukatos\\Documents\\software_code\\Elias_CRM\\databases\\database.db"
+    print(f"{Colors.CYAN}Trying hardcoded database path: {windows_path}{Colors.END}")
     
-    # Create the database path using the project root
-    db_path = os.path.join(project_root, 'databases', 'database.db')
-    
-    # Ensure the database directory exists
-    db_folder = os.path.join(project_root, 'databases')
-    if not os.path.exists(db_folder):
-        try:
-            os.makedirs(db_folder)
-            print(f"{Colors.GREEN}Created database directory at: {db_folder}{Colors.END}")
-        except Exception as e:
-            print(f"{Colors.RED}Could not create database directory at {db_folder}: {e}{Colors.END}")
-            # Fall back to user home directory below
-    
-    print(f"{Colors.CYAN}Connecting to database at: {db_path}{Colors.END}")
-    
+    # Try hardcoded path first
     try:
+        db_dir = os.path.dirname(windows_path)
+        if not os.path.exists(db_dir):
+            os.makedirs(db_dir, exist_ok=True)
+            print(f"{Colors.GREEN}Created hardcoded database directory{Colors.END}")
+            
+        conn = sqlite3.connect(windows_path)
+        conn.row_factory = sqlite3.Row
+        print(f"{Colors.GREEN}Successfully connected using hardcoded path{Colors.END}")
+        return conn
+    except Exception as e:
+        print(f"{Colors.RED}Hardcoded path failed: {e}{Colors.END}")
+    
+    # If hardcoded fails, try with PROJECT_ROOT
+    try:
+        # First, check if PROJECT_ROOT is set in the environment
+        project_root = os.environ.get('PROJECT_ROOT')
+        print(f"[DEBUG] Using project_root: {project_root}")
+        
+        # If not set, calculate it
+        if not project_root:
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            print(f"[DEBUG] Calculated project_root: {project_root}")
+            # Store it for future use
+            os.environ['PROJECT_ROOT'] = project_root
+            
+        # EXPLICIT WINDOWS FIX
+        if "\\" in project_root:  # Windows path
+            project_root = project_root.replace("/", "\\")
+            print(f"[DEBUG] Windows path detected, fixed to: {project_root}")
+        
+        # Create the database path using the project root
+        db_path = os.path.join(project_root, 'databases', 'database.db')
+        print(f"[DEBUG] Final db_path: {db_path}")
+        
+        # Ensure the database directory exists
+        db_folder = os.path.join(project_root, 'databases')
+        print(f"[DEBUG] Database folder: {db_folder}")
+        print(f"[DEBUG] Folder exists: {os.path.exists(db_folder)}")
+        
+        if not os.path.exists(db_folder):
+            try:
+                os.makedirs(db_folder, exist_ok=True)
+                print(f"{Colors.GREEN}Created database directory at: {db_folder}{Colors.END}")
+            except Exception as e:
+                print(f"{Colors.RED}Could not create database directory at {db_folder}: {e}{Colors.END}")
+                print(f"[DEBUG] Exception type: {type(e)}")
+                # Fall back to user home directory below
+        
+        print(f"{Colors.CYAN}Connecting to database at: {db_path}{Colors.END}")
+        
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row  # This enables column access by name
+        print(f"{Colors.GREEN}Successfully connected to database{Colors.END}")
         return conn
     except Error as e:
         print(f"{Colors.RED}Error connecting to database: {e}{Colors.END}")
+        print(f"[DEBUG] Exception type: {type(e)}")
         
         # Try alternate location in user's home directory
         try:
             user_home = os.path.expanduser("~")
+            print(f"[DEBUG] User home directory: {user_home}")
             alt_db_path = os.path.join(user_home, 'databases', 'database.db')
             
             # Ensure the directory exists
             db_folder = os.path.join(user_home, 'databases')
             if not os.path.exists(db_folder):
-                os.makedirs(db_folder)
+                os.makedirs(db_folder, exist_ok=True)
                 
             print(f"{Colors.YELLOW}Trying alternate database path: {alt_db_path}{Colors.END}")
             conn = sqlite3.connect(alt_db_path)
@@ -83,10 +123,30 @@ def get_db_connection():
             
             # Store this path for future use
             os.environ['PROJECT_ROOT'] = user_home
-            
+            print(f"{Colors.GREEN}Successfully connected to alternate database path{Colors.END}")
             return conn
-        except Error as e2:
-            print(f"{Colors.RED}Database connection failed{Colors.END}")
+        except Exception as e2:
+            print(f"{Colors.RED}Database connection failed: {e2}{Colors.END}")
+            print(f"[DEBUG] Final exception type: {type(e2)}")
+            
+            # ONE FINAL ATTEMPT - TRY APPDATA FOLDER
+            try:
+                if os.name == 'nt':  # Windows
+                    appdata = os.environ.get('APPDATA', '')
+                    print(f"[DEBUG] Trying APPDATA folder: {appdata}")
+                    if appdata:
+                        app_db_dir = os.path.join(appdata, 'Elias_CRM', 'databases')
+                        if not os.path.exists(app_db_dir):
+                            os.makedirs(app_db_dir, exist_ok=True)
+                        app_db_path = os.path.join(app_db_dir, 'database.db')
+                        print(f"{Colors.YELLOW}Trying APPDATA database path: {app_db_path}{Colors.END}")
+                        conn = sqlite3.connect(app_db_path)
+                        conn.row_factory = sqlite3.Row
+                        print(f"{Colors.GREEN}Successfully connected to APPDATA database{Colors.END}")
+                        return conn
+            except Exception as e3:
+                print(f"{Colors.RED}APPDATA attempt failed: {e3}{Colors.END}")
+            
             return None
 
 def list_campaigns():

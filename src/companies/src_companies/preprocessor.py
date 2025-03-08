@@ -97,6 +97,21 @@ def extract_domain(url):
 
 def company_exists(domain):
     try:
+        # HARDCODED PATH FOR WINDOWS - TRY THIS FIRST
+        windows_path = "C:\\Users\\EliasTsoukatos\\Documents\\software_code\\Elias_CRM\\databases\\database.db"
+        print(f"🔍 Trying hardcoded Windows database path: {windows_path}")
+        
+        # Try hardcoded path first
+        try:
+            conn = sqlite3.connect(windows_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT company_id FROM companies WHERE domain = ?", (domain,))
+            result = cursor.fetchone()
+            conn.close()
+            return result[0] if result else None
+        except Exception as e:
+            print(f"⚠️ Hardcoded path failed: {e}, trying next option")
+        
         # Connect to the database at project root
         import os
         project_root = os.environ.get('PROJECT_ROOT')
@@ -104,15 +119,53 @@ def company_exists(domain):
             script_dir = os.path.dirname(os.path.abspath(__file__))
             project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(script_dir))))
         db_path = os.path.join(project_root, 'databases', 'database.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT company_id FROM companies WHERE domain = ?", (domain,))
-        result = cursor.fetchone()
-        conn.close()
-        return result[0] if result else None
+        print(f"🔍 Trying project root database path: {db_path}")
+        
+        try:
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT company_id FROM companies WHERE domain = ?", (domain,))
+            result = cursor.fetchone()
+            conn.close()
+            return result[0] if result else None
+        except Exception as e:
+            print(f"⚠️ Project root path failed: {e}, trying home directory")
+            
+            # Try user's home directory
+            user_home = os.path.expanduser("~")
+            alt_db_path = os.path.join(user_home, 'databases', 'database.db')
+            print(f"🔍 Trying user home database path: {alt_db_path}")
+            
+            try:
+                conn = sqlite3.connect(alt_db_path)
+                cursor = conn.cursor()
+                cursor.execute("SELECT company_id FROM companies WHERE domain = ?", (domain,))
+                result = cursor.fetchone()
+                conn.close()
+                return result[0] if result else None
+            except Exception as e2:
+                print(f"⚠️ User home path failed: {e2}")
+                
+                # Final attempt - try APPDATA on Windows
+                if os.name == 'nt':  # Windows
+                    try:
+                        appdata = os.environ.get('APPDATA', '')
+                        if appdata:
+                            app_db_path = os.path.join(appdata, 'Elias_CRM', 'databases', 'database.db')
+                            print(f"🔍 Trying APPDATA database path: {app_db_path}")
+                            conn = sqlite3.connect(app_db_path)
+                            cursor = conn.cursor()
+                            cursor.execute("SELECT company_id FROM companies WHERE domain = ?", (domain,))
+                            result = cursor.fetchone()
+                            conn.close()
+                            return result[0] if result else None
+                    except Exception as e3:
+                        print(f"⚠️ APPDATA path failed: {e3}")
+        
     except Exception as e:
         print(f"Error checking company existence: {e}")
-        return None
+    
+    return None
 
 def standardize_string(s):
     if isinstance(s, str):
@@ -407,21 +460,63 @@ def preprocessor(data, batch_id, batch_tag, extra_context=None):
                             print(f"  ➕ Processing custom table {table} with {len(mappings)} fields")
                             
                             # Get column names for this table (excluding id and company_id)
-                            # Get project root from environment variable if set, otherwise calculate
                             import os
-                            project_root = os.environ.get('PROJECT_ROOT')
-                            if not project_root:
-                                # Fallback to calculating the path - ensure we get to the parent of src
-                                script_dir = os.path.dirname(os.path.abspath(__file__))  # src_companies dir
-                                src_companies_dir = os.path.dirname(script_dir)          # companies dir
-                                companies_dir = os.path.dirname(src_companies_dir)       # src dir
-                                project_root = os.path.dirname(companies_dir)            # project root
                             
-                            db_path = os.path.join(project_root, 'databases', 'database.db')
-                            cursor = sqlite3.connect(db_path).cursor()
-                            cursor.execute(f"PRAGMA table_info({table});")
-                            table_columns = [column[1] for column in cursor.fetchall()]
-                            cursor.close()
+                            # HARDCODED PATH FOR WINDOWS - TRY THIS FIRST
+                            windows_path = "C:\\Users\\EliasTsoukatos\\Documents\\software_code\\Elias_CRM\\databases\\database.db"
+                            print(f"🔍 Trying hardcoded Windows database path for schema lookup: {windows_path}")
+                            
+                            try:
+                                # Try hardcoded path first
+                                conn = sqlite3.connect(windows_path)
+                                cursor = conn.cursor()
+                                cursor.execute(f"PRAGMA table_info({table});")
+                                table_columns = [column[1] for column in cursor.fetchall()]
+                                cursor.close()
+                                conn.close()
+                                print(f"✅ Successfully retrieved schema from hardcoded path")
+                            except Exception as e:
+                                print(f"⚠️ Hardcoded path failed for schema lookup: {e}, trying alternatives")
+                                
+                                # Get project root from environment variable if set, otherwise calculate
+                                project_root = os.environ.get('PROJECT_ROOT')
+                                if not project_root:
+                                    # Fallback to calculating the path - ensure we get to the parent of src
+                                    script_dir = os.path.dirname(os.path.abspath(__file__))  # src_companies dir
+                                    src_companies_dir = os.path.dirname(script_dir)          # companies dir
+                                    companies_dir = os.path.dirname(src_companies_dir)       # src dir
+                                    project_root = os.path.dirname(companies_dir)            # project root
+                                
+                                try:
+                                    db_path = os.path.join(project_root, 'databases', 'database.db')
+                                    print(f"🔍 Trying project root path for schema lookup: {db_path}")
+                                    conn = sqlite3.connect(db_path)
+                                    cursor = conn.cursor()
+                                    cursor.execute(f"PRAGMA table_info({table});")
+                                    table_columns = [column[1] for column in cursor.fetchall()]
+                                    cursor.close()
+                                    conn.close()
+                                    print(f"✅ Successfully retrieved schema from project root path")
+                                except Exception as e2:
+                                    print(f"⚠️ Project root path failed for schema lookup: {e2}, trying home directory")
+                                    
+                                    # Try user's home directory
+                                    try:
+                                        user_home = os.path.expanduser("~")
+                                        alt_db_path = os.path.join(user_home, 'databases', 'database.db')
+                                        print(f"🔍 Trying home directory for schema lookup: {alt_db_path}")
+                                        conn = sqlite3.connect(alt_db_path)
+                                        cursor = conn.cursor()
+                                        cursor.execute(f"PRAGMA table_info({table});")
+                                        table_columns = [column[1] for column in cursor.fetchall()]
+                                        cursor.close()
+                                        conn.close()
+                                        print(f"✅ Successfully retrieved schema from home directory path")
+                                    except Exception as e3:
+                                        print(f"⚠️ Home directory path failed for schema lookup: {e3}")
+                                        # If all attempts fail, provide a default set of columns
+                                        table_columns = ["id", "company_id", "value"]
+                                        print(f"⚠️ Using default columns: {table_columns}")
                             
                             # Find out how many fields this table has (excluding id and company_id)
                             data_fields = [col for col in table_columns if col not in ["id", "company_id"]]

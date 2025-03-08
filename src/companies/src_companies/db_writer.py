@@ -9,27 +9,100 @@ def connect_db():
     # Ensure we're connecting to the database at project root level
     import os
     
+    # DEBUG OUTPUT
+    print(f"[DEBUG] DB_WRITER Connect_db: Current working directory: {os.getcwd()}")
+    print(f"[DEBUG] __file__: {__file__}")
+    print(f"[DEBUG] abspath(__file__): {os.path.abspath(__file__)}")
+    print(f"[DEBUG] Environment vars: PROJECT_ROOT={os.environ.get('PROJECT_ROOT')}")
+    
+    # HARDCODED PATH FOR WINDOWS - TRY THIS FIRST
+    windows_path = "C:\\Users\\EliasTsoukatos\\Documents\\software_code\\Elias_CRM\\databases\\database.db"
+    print(f"🔍 Trying hardcoded Windows database path: {windows_path}")
+    
+    # Try hardcoded path first
+    try:
+        db_dir = os.path.dirname(windows_path)
+        if not os.path.exists(db_dir):
+            os.makedirs(db_dir, exist_ok=True)
+            print(f"✅ Created hardcoded database directory: {db_dir}")
+            
+        conn = sqlite3.connect(windows_path)
+        print(f"✅ Successfully connected to hardcoded database path")
+        # Set the project root for future use
+        os.environ['PROJECT_ROOT'] = os.path.dirname(db_dir)
+        return conn
+    except Exception as e:
+        print(f"⚠️ Hardcoded path failed: {e}, trying next option")
+    
     # Get project root from environment variable if set, otherwise calculate
     project_root = os.environ.get('PROJECT_ROOT')
+    print(f"[DEBUG] PROJECT_ROOT from env: {project_root}")
     
     if not project_root:
         # Fallback to calculating the path
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        print(f"[DEBUG] Calculated project_root: {project_root}")
     
+    # EXPLICIT WINDOWS FIX
+    if os.name == 'nt' and '\\' in project_root:  # Windows path
+        project_root = project_root.replace("/", "\\")
+        print(f"[DEBUG] Windows path detected, fixed project_root: {project_root}")
+    
+    # Create the database path using the project root
     db_path = os.path.join(project_root, 'databases', 'database.db')
+    print(f"[DEBUG] Database path: {db_path}")
     
     try:
+        # Ensure the database directory exists
+        db_dir = os.path.dirname(db_path)
+        if not os.path.exists(db_dir):
+            os.makedirs(db_dir, exist_ok=True)
+            print(f"✅ Created database directory: {db_dir}")
+            
         conn = sqlite3.connect(db_path)
+        print(f"✅ Successfully connected to database")
         return conn
     except Error as e:
-        print(f"Error connecting to database: {e}")
+        print(f"⚠️ Error connecting to database: {e}")
+        print(f"[DEBUG] Exception type: {type(e)}")
         
         # Try alternate location in user's home directory
-        user_home = os.path.expanduser("~")
-        alt_db_path = os.path.join(user_home, 'databases', 'database.db')
-        
-        print(f"Trying alternate database path: {alt_db_path}")
-        return sqlite3.connect(alt_db_path)
+        try:
+            user_home = os.path.expanduser("~")
+            print(f"[DEBUG] User home: {user_home}")
+            alt_db_path = os.path.join(user_home, 'databases', 'database.db')
+            
+            # Ensure the directory exists
+            db_folder = os.path.join(user_home, 'databases')
+            if not os.path.exists(db_folder):
+                os.makedirs(db_folder, exist_ok=True)
+                print(f"✅ Created user home database directory: {db_folder}")
+                
+            print(f"🔍 Trying alternate database path: {alt_db_path}")
+            conn = sqlite3.connect(alt_db_path)
+            print(f"✅ Successfully connected to alternate database path")
+            return conn
+        except Exception as e2:
+            print(f"⚠️ User home database failed: {e2}")
+            
+            # ONE FINAL ATTEMPT - TRY APPDATA FOLDER
+            try:
+                if os.name == 'nt':  # Windows
+                    appdata = os.environ.get('APPDATA', '')
+                    print(f"[DEBUG] Trying APPDATA folder: {appdata}")
+                    if appdata:
+                        app_db_dir = os.path.join(appdata, 'Elias_CRM', 'databases')
+                        if not os.path.exists(app_db_dir):
+                            os.makedirs(app_db_dir, exist_ok=True)
+                            print(f"✅ Created APPDATA database directory: {app_db_dir}")
+                        app_db_path = os.path.join(app_db_dir, 'database.db')
+                        print(f"🔍 Trying APPDATA database path: {app_db_path}")
+                        conn = sqlite3.connect(app_db_path)
+                        print(f"✅ Successfully connected to APPDATA database")
+                        return conn
+            except Exception as e3:
+                print(f"⚠️ APPDATA database failed: {e3}")
+                raise e  # Re-raise the original error
 
 def insert_or_update(cursor, table, data, unique_key):
     placeholders = ', '.join(['?'] * len(data))

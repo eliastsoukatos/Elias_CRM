@@ -3,8 +3,41 @@ import sqlite3
 from sqlite3 import Error
 
 def check_for_database():
+    # DEBUG OUTPUT
+    print(f"[DEBUG] Check_for_database: Current working directory: {os.getcwd()}")
+    print(f"[DEBUG] __file__: {__file__}")
+    print(f"[DEBUG] abspath(__file__): {os.path.abspath(__file__)}")
+    print(f"[DEBUG] Environment vars: PROJECT_ROOT={os.environ.get('PROJECT_ROOT')}")
+    
+    # HARDCODED PATH FOR WINDOWS - TRY THIS FIRST
+    windows_path = "C:\\Users\\EliasTsoukatos\\Documents\\software_code\\Elias_CRM\\databases\\database.db"
+    windows_folder = os.path.dirname(windows_path)
+    print(f"🔍 Trying hardcoded Windows database path: {windows_path}")
+    
+    # Try hardcoded path first for Windows
+    try:
+        if not os.path.exists(windows_folder):
+            os.makedirs(windows_folder, exist_ok=True)
+            print(f"✅ Created hardcoded database directory: {windows_folder}")
+        
+        # Test connection with hardcoded path
+        conn = sqlite3.connect(windows_path)
+        cursor = conn.cursor()
+        conn.close()
+        print(f"✅ Successfully verified database at hardcoded path: {windows_path}")
+        # If we get here, we found a working database - use this folder 
+        db_folder = windows_folder
+        db_path = windows_path
+        # Save this for future use
+        os.environ['PROJECT_ROOT'] = os.path.dirname(windows_folder)
+        print(f"✅ Set PROJECT_ROOT to {os.environ['PROJECT_ROOT']}")
+        return create_tables(db_path)
+    except Exception as e:
+        print(f"⚠️ Hardcoded path failed: {e}, trying next option")
+    
     # Get project root from environment variable if set, otherwise calculate
     project_root = os.environ.get('PROJECT_ROOT')
+    print(f"[DEBUG] PROJECT_ROOT from env: {project_root}")
     
     if not project_root:
         # Fallback to calculating the path
@@ -13,30 +46,64 @@ def check_for_database():
         src_companies_dir = os.path.dirname(script_dir)          # companies dir
         companies_dir = os.path.dirname(src_companies_dir)       # src dir
         project_root = os.path.dirname(companies_dir)            # project root
+        print(f"[DEBUG] Calculated project_root: {project_root}")
+    
+    # EXPLICIT WINDOWS FIX
+    if os.name == 'nt' and '\\' in project_root:  # Windows path
+        project_root = project_root.replace("/", "\\")
+        print(f"[DEBUG] Windows path detected, fixed project_root: {project_root}")
     
     # Ensure we're using the database in the project root
     db_folder = os.path.join(project_root, 'databases')
     db_path = os.path.join(db_folder, 'database.db')
     
-    # Print the path in debug mode
-    if os.environ.get('CRM_DEBUG', '0') == '1':
-        print(f"Using database at: {db_path}")
+    print(f"🔍 Attempting to use database at: {db_path}")
+    print(f"[DEBUG] Database folder: {db_folder}")
+    print(f"[DEBUG] Folder exists: {os.path.exists(db_folder)}")
 
     # Make sure the database folder exists
     if not os.path.exists(db_folder):
         try:
-            os.makedirs(db_folder)
+            os.makedirs(db_folder, exist_ok=True)
+            print(f"✅ Created database directory: {db_folder}")
         except Exception as e:
             # If we can't create in the project root, use user's home directory as fallback
-            print(f"Could not create database folder in project root: {e}")
+            print(f"⚠️ Could not create database folder in project root: {e}")
+            print(f"[DEBUG] Exception type: {type(e)}")
             user_home = os.path.expanduser("~")
+            print(f"[DEBUG] User home: {user_home}")
             db_folder = os.path.join(user_home, 'databases')
             db_path = os.path.join(db_folder, 'database.db')
-            print(f"Using alternate database path: {db_path}")
+            print(f"🔍 Using alternate database path: {db_path}")
             
             if not os.path.exists(db_folder):
-                os.makedirs(db_folder)
+                try:
+                    os.makedirs(db_folder, exist_ok=True)
+                    print(f"✅ Created alternate database directory: {db_folder}")
+                except Exception as e2:
+                    print(f"⚠️ Could not create alternate database folder: {e2}")
+                    
+                    # ONE FINAL ATTEMPT - TRY APPDATA FOLDER FOR WINDOWS
+                    if os.name == 'nt':  # Windows
+                        try:
+                            appdata = os.environ.get('APPDATA', '')
+                            print(f"[DEBUG] Trying APPDATA folder: {appdata}")
+                            if appdata:
+                                app_db_dir = os.path.join(appdata, 'Elias_CRM', 'databases')
+                                if not os.path.exists(app_db_dir):
+                                    os.makedirs(app_db_dir, exist_ok=True)
+                                    print(f"✅ Created APPDATA database directory: {app_db_dir}")
+                                db_folder = app_db_dir
+                                db_path = os.path.join(app_db_dir, 'database.db')
+                                print(f"🔍 Using APPDATA database path: {db_path}")
+                        except Exception as e3:
+                            print(f"⚠️ APPDATA database creation failed: {e3}")
+    
+    return create_tables(db_path)
 
+def create_tables(db_path):
+    """Create the required tables in the database"""
+    print(f"[DEBUG] Creating tables in database: {db_path}")
     db_exists = os.path.exists(db_path)
 
     try:
