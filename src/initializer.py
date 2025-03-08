@@ -34,6 +34,32 @@ from clean_verifications import clean_verification_records
 from clean_ratings import clean_rating_records
 
 
+def get_db_path():
+    """Get the database path with preference for the hardcoded Windows path"""
+    # First check if a hardcoded path is provided in the environment
+    hardcoded_path = os.environ.get("DB_PATH")
+    if hardcoded_path and os.name == 'nt':  # Only use on Windows
+        # Ensure directory exists
+        db_dir = os.path.dirname(hardcoded_path)
+        if not os.path.exists(db_dir):
+            try:
+                os.makedirs(db_dir, exist_ok=True)
+                print(f"Created database directory at: {db_dir}")
+            except Exception as e:
+                print(f"Could not create directory at {db_dir}: {e}")
+        return hardcoded_path
+        
+    # Otherwise use the PROJECT_ROOT environment variable
+    project_root = os.environ.get('PROJECT_ROOT')
+    if not project_root:
+        # Fallback to calculating the path
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(script_dir)
+    
+    # Return the standard path
+    return os.path.join(project_root, 'databases', 'database.db')
+
+
 def initialize_app():
     """Initialize the application by setting up the database and migrations."""
     print("🔧 Initializing application...")
@@ -1220,8 +1246,11 @@ sys.path.insert(0, current_dir)
 project_root = os.path.dirname(os.path.dirname(current_dir))
 os.environ['PROJECT_ROOT'] = project_root
 
-# Use environment variable for database path
-DB_PATH = os.path.join(os.environ.get('PROJECT_ROOT', project_root), 'databases', 'database.db')
+# Use hardcoded path for Windows, fallback to environment variable
+if os.environ.get("DB_PATH") and os.name == 'nt':
+    DB_PATH = os.environ.get("DB_PATH")
+else:
+    DB_PATH = os.path.join(os.environ.get('PROJECT_ROOT', project_root), 'databases', 'database.db')
 
 def get_db_connection():
     try:

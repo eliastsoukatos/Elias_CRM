@@ -3,10 +3,14 @@ import sys
 import warnings
 from src.initializer import initialize_app, start_app_menu
 
-# Set the PROJECT_ROOT environment variable
+# Set the PROJECT_ROOT environment variable and hardcode the database path
 # This is crucial for all database operations
 current_dir = os.path.dirname(os.path.abspath(__file__))
 os.environ["PROJECT_ROOT"] = current_dir
+
+# Add hardcoded database path for Windows
+# All database code will first try this path
+os.environ["DB_PATH"] = "C:\\Users\\EliasTsoukatos\\Documents\\software_code\\Elias_CRM\\databases\\database.db"
 
 # Suppress PyQt warnings
 os.environ["QT_LOGGING_RULES"] = "*.debug=false;qt.qpa.*=false;qt.network.*=false"

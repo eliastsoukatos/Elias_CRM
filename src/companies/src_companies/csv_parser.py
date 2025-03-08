@@ -28,6 +28,79 @@ class Colors:
     UNDERLINE = '\033[4m' if platform.system() != 'Windows' else ''
     END = '\033[0m' if platform.system() != 'Windows' else ''
 
+def get_db_connection():
+    """Gets a connection to the database with fallbacks"""
+    # HARDCODED PATH FOR WINDOWS - TRY THIS FIRST
+    windows_path = "C:\\Users\\EliasTsoukatos\\Documents\\software_code\\Elias_CRM\\databases\\database.db"
+    
+    # Try hardcoded path first
+    try:
+        db_dir = os.path.dirname(windows_path)
+        if not os.path.exists(db_dir):
+            os.makedirs(db_dir, exist_ok=True)
+            
+        conn = sqlite3.connect(windows_path)
+        print(f"Connected to database at: {windows_path}")
+        return conn
+    except Exception as e:
+        print(f"Hardcoded path failed: {e}")
+    
+    # Try project root path
+    try:
+        # Connect to the database at project root
+        project_root = os.environ.get('PROJECT_ROOT')
+        if not project_root:
+            # Fallback to calculating the path - ensure we get to the parent of src
+            script_dir = os.path.dirname(os.path.abspath(__file__))  # src_companies dir
+            src_companies_dir = os.path.dirname(script_dir)          # companies dir
+            companies_dir = os.path.dirname(src_companies_dir)       # src dir
+            project_root = os.path.dirname(companies_dir)            # project root
+        
+        db_path = os.path.join(project_root, 'databases', 'database.db')
+        db_dir = os.path.dirname(db_path)
+        if not os.path.exists(db_dir):
+            os.makedirs(db_dir, exist_ok=True)
+            
+        conn = sqlite3.connect(db_path)
+        print(f"Connected to database at: {db_path}")
+        return conn
+    except Exception as e:
+        print(f"Project root path failed: {e}")
+        
+        # Try user's home directory
+        try:
+            user_home = os.path.expanduser("~")
+            alt_db_path = os.path.join(user_home, 'databases', 'database.db')
+            
+            # Ensure the directory exists
+            db_folder = os.path.join(user_home, 'databases')
+            if not os.path.exists(db_folder):
+                os.makedirs(db_folder, exist_ok=True)
+                
+            conn = sqlite3.connect(alt_db_path)
+            print(f"Connected to database at: {alt_db_path}")
+            return conn
+        except Exception as e2:
+            print(f"User home path failed: {e2}")
+            
+            # Try APPDATA for Windows
+            if platform.system() == 'Windows':
+                try:
+                    appdata = os.environ.get('APPDATA', '')
+                    if appdata:
+                        app_db_dir = os.path.join(appdata, 'Elias_CRM', 'databases')
+                        if not os.path.exists(app_db_dir):
+                            os.makedirs(app_db_dir, exist_ok=True)
+                        app_db_path = os.path.join(app_db_dir, 'database.db')
+                        conn = sqlite3.connect(app_db_path)
+                        print(f"Connected to database at: {app_db_path}")
+                        return conn
+                except Exception as e3:
+                    print(f"APPDATA path failed: {e3}")
+    
+    # If all attempts fail, raise an exception
+    raise Exception("Could not connect to database with any of the fallback paths")
+
 def get_db_columns():
     """
     Obtiene las columnas de las tablas relevantes de la base de datos.
@@ -35,19 +108,7 @@ def get_db_columns():
     Returns:
         dict: Un diccionario donde las llaves son los nombres de las tablas y los valores son listas de columnas.
     """
-    # Get project root from environment variable if set, otherwise calculate
-    project_root = os.environ.get('PROJECT_ROOT')
-    
-    if not project_root:
-        # Fallback to calculating the path - ensure we get to the parent of src
-        script_dir = os.path.dirname(os.path.abspath(__file__))  # src_companies dir
-        src_companies_dir = os.path.dirname(script_dir)          # companies dir
-        companies_dir = os.path.dirname(src_companies_dir)       # src dir
-        project_root = os.path.dirname(companies_dir)            # project root
-    
-    db_path = os.path.join(project_root, 'databases', 'database.db')
-    
-    conn = sqlite3.connect(db_path)
+    conn = get_db_connection()
     cursor = conn.cursor()
     tables = [
         "companies", "company_locations", "company_phones", "company_technologies",
@@ -159,17 +220,8 @@ def create_new_column(table, column):
         column (str): Nombre de la nueva columna.
     """
     try:
-        # Get project root from environment variable if set, otherwise calculate
-        project_root = os.environ.get('PROJECT_ROOT')
-        
-        if not project_root:
-            # Fallback to calculating the path
-            script_dir = os.path.dirname(os.path.abspath(__file__))
-            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(script_dir))))
-        
-        db_path = os.path.join(project_root, 'databases', 'database.db')
-        
-        conn = sqlite3.connect(db_path)
+        # Connect to the database using our connection method
+        conn = get_db_connection()
         cursor = conn.cursor()
         alter_query = f"ALTER TABLE {table} ADD COLUMN {column} TEXT;"
         cursor.execute(alter_query)
@@ -190,17 +242,8 @@ def create_new_table(table_name):
         bool: True if successful, False otherwise.
     """
     try:
-        # Get project root from environment variable if set, otherwise calculate
-        project_root = os.environ.get('PROJECT_ROOT')
-        
-        if not project_root:
-            # Fallback to calculating the path
-            script_dir = os.path.dirname(os.path.abspath(__file__))
-            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(script_dir))))
-        
-        db_path = os.path.join(project_root, 'databases', 'database.db')
-        
-        conn = sqlite3.connect(db_path)
+        # Connect to the database using our connection method
+        conn = get_db_connection()
         cursor = conn.cursor()
         
         # Check if table already exists

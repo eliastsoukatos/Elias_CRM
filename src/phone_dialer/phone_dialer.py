@@ -33,10 +33,16 @@ except ImportError:
     SELENIUM_AVAILABLE = False
     print("Selenium not available. Will use basic webbrowser module instead.")
 
-# Database path - platform-independent
+# Database path - use hardcoded path for Windows
 import os
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-DB_PATH = os.path.join(project_root, 'databases', 'database.db')
+
+# Use hardcoded path for Windows
+if os.name == 'nt':  # Windows
+    DB_PATH = "C:\\Users\\EliasTsoukatos\\Documents\\software_code\\Elias_CRM\\databases\\database.db"
+else:
+    # Create the database path for other platforms
+    DB_PATH = os.path.join(project_root, 'databases', 'database.db')
 
 # Browser thread for handling URLs
 class BrowserThread(QThread):

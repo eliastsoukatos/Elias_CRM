@@ -19,15 +19,43 @@ if project_root not in sys.path:
 # Make the database path accessible - use platform-independent path
 def get_db_path():
     """Determine the appropriate database path"""
-    # Try multiple potential project root locations
+    # HARDCODED PATH FOR WINDOWS - TRY THIS FIRST
+    if os.environ.get("DB_PATH") and os.name == 'nt':  # Only use on Windows
+        hardcoded_path = os.environ.get("DB_PATH")
+        print(f"Using hardcoded database path from environment: {hardcoded_path}")
+        
+        # Ensure directory exists
+        db_dir = os.path.dirname(hardcoded_path)
+        if not os.path.exists(db_dir):
+            try:
+                os.makedirs(db_dir, exist_ok=True)
+                print(f"Created database directory at: {db_dir}")
+            except Exception as e:
+                print(f"Could not create directory at {db_dir}: {e}")
+        return hardcoded_path
     
-    # First try from our file
+    # Hardcoded Windows path as fallback
+    if os.name == 'nt':  # Only use on Windows
+        windows_path = "C:\\Users\\EliasTsoukatos\\Documents\\software_code\\Elias_CRM\\databases\\database.db"
+        print(f"Using hardcoded database path: {windows_path}")
+        
+        # Ensure directory exists
+        db_dir = os.path.dirname(windows_path)
+        if not os.path.exists(db_dir):
+            try:
+                os.makedirs(db_dir, exist_ok=True)
+                print(f"Created database directory at: {db_dir}")
+            except Exception as e:
+                print(f"Could not create directory at {db_dir}: {e}")
+        return windows_path
+    
+    # Try multiple potential project root locations as fallback
     file_dir = os.path.dirname(os.path.abspath(__file__))
     contacts_dir = file_dir
     src_dir = os.path.dirname(contacts_dir)
     project_root = os.path.dirname(src_dir)
     
-    # Try the project root first
+    # Try the project root
     db_dir = os.path.join(project_root, 'databases')
     db_path = os.path.join(db_dir, 'database.db')
     
