@@ -33,8 +33,10 @@ except ImportError:
     SELENIUM_AVAILABLE = False
     print("Selenium not available. Will use basic webbrowser module instead.")
 
-# Database path
-DB_PATH = '/home/eliastsoukatos/Documents/Python/CRM/databases/database.db'
+# Database path - platform-independent
+import os
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+DB_PATH = os.path.join(project_root, 'databases', 'database.db')
 
 # Browser thread for handling URLs
 class BrowserThread(QThread):
@@ -1069,8 +1071,11 @@ class PhoneDialerApp:
                 # Small pause to ensure the click is registered
                 time.sleep(0.5)
                 
-                # Paste the phone number (Ctrl+V)
-                pyautogui.hotkey('ctrl', 'v')
+                # Paste the phone number (Ctrl+V or Command+V on macOS)
+                if sys.platform == 'darwin':
+                    pyautogui.hotkey('command', 'v')
+                else:
+                    pyautogui.hotkey('ctrl', 'v')
                 
                 # Small pause before clicking coordinate B
                 time.sleep(0.5)

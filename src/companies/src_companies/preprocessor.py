@@ -2,6 +2,8 @@ import re
 import uuid
 import sqlite3
 import json
+import os
+import platform
 from datetime import datetime
 from urllib.parse import urlparse
 from db_writer import db_writer
@@ -97,7 +99,10 @@ def company_exists(domain):
     try:
         # Connect to the database at project root
         import os
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        project_root = os.environ.get('PROJECT_ROOT')
+        if not project_root:
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(script_dir))))
         db_path = os.path.join(project_root, 'databases', 'database.db')
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
@@ -402,7 +407,18 @@ def preprocessor(data, batch_id, batch_tag, extra_context=None):
                             print(f"  ➕ Processing custom table {table} with {len(mappings)} fields")
                             
                             # Get column names for this table (excluding id and company_id)
-                            cursor = sqlite3.connect('databases/database.db').cursor()
+                            # Get project root from environment variable if set, otherwise calculate
+                            import os
+                            project_root = os.environ.get('PROJECT_ROOT')
+                            if not project_root:
+                                # Fallback to calculating the path - ensure we get to the parent of src
+                                script_dir = os.path.dirname(os.path.abspath(__file__))  # src_companies dir
+                                src_companies_dir = os.path.dirname(script_dir)          # companies dir
+                                companies_dir = os.path.dirname(src_companies_dir)       # src dir
+                                project_root = os.path.dirname(companies_dir)            # project root
+                            
+                            db_path = os.path.join(project_root, 'databases', 'database.db')
+                            cursor = sqlite3.connect(db_path).cursor()
                             cursor.execute(f"PRAGMA table_info({table});")
                             table_columns = [column[1] for column in cursor.fetchall()]
                             cursor.close()

@@ -606,8 +606,8 @@ input("Press Enter to continue...")
                     # Change to the companies directory
                     os.chdir(companies_dir)
                     
-                    # Execute the script in a new process
-                    subprocess.Popen([sys.executable, temp_script])
+                    # Execute the script in a new process (platform-independent)
+                    subprocess.Popen([sys.executable, temp_script], shell=True if os.name == 'nt' else False)
                     
                     # Show progress message
                     QMessageBox.information(self, "Scraper Running", 
@@ -837,8 +837,9 @@ run_csv_import_gui()
             # First, test the query to see if it returns results
             import sqlite3
             
-            # Connect to database directly
-            db_path = "/home/eliastsoukatos/Documents/Python/CRM/databases/database.db"
+            # Connect to database with platform-independent path
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            db_path = os.path.join(project_root, 'databases', 'database.db')
             conn = sqlite3.connect(db_path)
             conn.row_factory = sqlite3.Row
             
@@ -907,8 +908,9 @@ import uuid
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, current_dir)
 
-# Directly use absolute database path
-DB_PATH = "/home/eliastsoukatos/Documents/Python/CRM/databases/database.db"
+# Use platform-independent path
+project_root = os.path.dirname(os.path.dirname(current_dir))
+DB_PATH = os.path.join(project_root, "databases", "database.db")
 
 def get_db_connection():
     try:
@@ -1395,8 +1397,9 @@ input("\\nPress Enter to continue...")
             # Get database connection
             import sqlite3
             
-            # Connect to database directly
-            db_path = "/home/eliastsoukatos/Documents/Python/CRM/databases/database.db"
+            # Connect to database with platform-independent path
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            db_path = os.path.join(project_root, 'databases', 'database.db')
             conn = sqlite3.connect(db_path)
             conn.row_factory = sqlite3.Row
             
@@ -1711,7 +1714,8 @@ subprocess.call(command)
             import csv
             
             # Get the last directory path from settings, if available
-            settings_dir = '/home/eliastsoukatos/Documents/Python/CRM/databases'
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            settings_dir = os.path.join(project_root, 'databases')
             settings_file = os.path.join(settings_dir, 'export_settings.txt')
             last_dir = os.path.expanduser('~')  # Default to home directory
             
@@ -1753,9 +1757,10 @@ subprocess.call(command)
             
             # Get campaigns from database
             try:
-                # Connect to database with debug info - use ABSOLUTE PATH to database
-                db_path = '/home/eliastsoukatos/Documents/Python/CRM/databases/database.db'
-                print(f"Using absolute path to database: {db_path}")
+                # Connect to database with debug info - use platform-independent path
+                project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                db_path = os.path.join(project_root, 'databases', 'database.db')
+                print(f"Using platform-independent path to database: {db_path}")
                 
                 # Verify the database exists
                 if not os.path.exists(db_path):
@@ -2194,8 +2199,9 @@ subprocess.call(command)
             # Import required modules
             import threading
             
-            # Path to the Cognism scraper directory - use the correct absolute path
-            cognism_dir = '/home/eliastsoukatos/Documents/Python/CRM/src/contacts/cognism_scraper'
+            # Path to the Cognism scraper directory - use platform-independent path
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            cognism_dir = os.path.join(project_root, 'src', 'contacts', 'cognism_scraper')
             print(f"Using Cognism scraper at: {cognism_dir}")
             
             # Check if the directory exists
@@ -2206,7 +2212,8 @@ subprocess.call(command)
             # Copy the .env file to the cognism scraper directory if it doesn't exist
             env_file = os.path.join(cognism_dir, '.env')
             if not os.path.exists(env_file):
-                root_env_file = '/home/eliastsoukatos/Documents/Python/CRM/.env'
+                project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                root_env_file = os.path.join(project_root, '.env')
                 if os.path.exists(root_env_file):
                     import shutil
                     shutil.copy2(root_env_file, env_file)
@@ -2329,7 +2336,8 @@ subprocess.call(command)
             
             # Add necessary paths
             import sys
-            cognism_dir = '/home/eliastsoukatos/Documents/Python/CRM/src/contacts/cognism_scraper'
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            cognism_dir = os.path.join(project_root, 'src', 'contacts', 'cognism_scraper')
             sys.path.append(cognism_dir)
             sys.path.append(os.path.join(cognism_dir, "src"))
             
@@ -2735,8 +2743,9 @@ subprocess.call(command)
             # Show dialog to select a campaign
             import sqlite3
             
-            # Connect to database directly
-            db_path = "/home/eliastsoukatos/Documents/Python/CRM/databases/database.db"
+            # Connect to database with platform-independent path
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            db_path = os.path.join(project_root, 'databases', 'database.db')
             conn = sqlite3.connect(db_path)
             conn.row_factory = sqlite3.Row
             
@@ -2799,8 +2808,9 @@ subprocess.call(command)
                 batch_combo.addItem("All Batches", "all")
                 
                 try:
-                    # Connect to database directly
-                    db_path = "/home/eliastsoukatos/Documents/Python/CRM/databases/database.db"
+                    # Connect to database with platform-independent path
+                    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    db_path = os.path.join(project_root, 'databases', 'database.db')
                     conn = sqlite3.connect(db_path)
                     conn.row_factory = sqlite3.Row
                     

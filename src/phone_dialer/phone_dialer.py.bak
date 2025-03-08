@@ -1,0 +1,922 @@
+import os
+import sys
+import sqlite3
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton, 
+                           QVBoxLayout, QWidget, QLabel, QHBoxLayout, 
+                           QGroupBox, QStackedWidget, QMessageBox, QComboBox,
+                           QFormLayout, QDialog, QTextBrowser)
+from PyQt5.QtCore import Qt
+
+# Database path
+DB_PATH = '/home/eliastsoukatos/Documents/Python/CRM/databases/database.db'
+
+class PhoneDialerApp:
+    def __init__(self, parent=None):
+        self.parent = parent
+        self.contacts_list = []
+        self.current_contact_index = -1
+        
+    def _safe_get_field(self, contact, field_name, default=''):
+        """Safely get a field from a contact, with fallbacks for SQLite.Row objects"""
+        try:
+            # First try direct access
+            value = contact[field_name]
+            return value if value is not None else default
+        except:
+            try:
+                # Try dict conversion
+                contact_dict = dict(contact)
+                value = contact_dict.get(field_name)
+                return value if value is not None else default
+            except:
+                return default
+    
+    def _get_contacts_by_company_id(self, company_id):
+        """Safely get indices of contacts from the same company"""
+        if not company_id:
+            return []
+            
+        company_contacts_indices = []
+        for i, c in enumerate(self.contacts_list):
+            try:
+                # Direct access approach for company_id
+                contact_company_id = None
+                
+                try:
+                    # Try direct access first
+                    contact_company_id = str(c['company_id'])
+                except:
+                    # Fall back to dict conversion
+                    try:
+                        contact_dict = dict(c)
+                        contact_company_id = contact_dict.get('company_id')
+                    except:
+                        pass
+                
+                # If found and matches target company_id
+                if contact_company_id and contact_company_id == company_id:
+                    company_contacts_indices.append(i)
+            except Exception as e:
+                print(f"Warning: Error processing contact at index {i}: {str(e)}")
+                
+        return company_contacts_indices
+    
+    def load_campaigns(self, company_campaign_combo, contact_batch_combo):
+        """Load company campaigns and contact batch tags for the phone dialer"""
+        try:
+            # Connect to database
+            conn = sqlite3.connect(DB_PATH)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            # Clear current items
+            company_campaign_combo.clear()
+            contact_batch_combo.clear()
+            
+            # Get company campaigns
+            cursor.execute("""
+                SELECT c.campaign_id, c.campaign_name, 
+                       COUNT(cc.company_id) as total_companies,
+                       c.created_at
+                FROM campaigns c
+                LEFT JOIN companies_campaign cc ON c.campaign_id = cc.campaign_id
+                GROUP BY c.campaign_id
+                ORDER BY c.created_at DESC
+            """)
+            
+            campaigns = cursor.fetchall()
+            
+            if not campaigns:
+                if self.parent:
+                    QMessageBox.warning(self.parent, "No Campaigns", "No company campaigns found.")
+                conn.close()
+                return False
+            
+            # Add campaigns to combo box
+            for campaign in campaigns:
+                company_campaign_combo.addItem(
+                    f"{campaign['campaign_name']} - {campaign['total_companies']} companies",
+                    campaign['campaign_id']
+                )
+            
+            # Get distinct contact batch tags
+            cursor.execute("""
+                SELECT DISTINCT campaign_batch_tag 
+                FROM contacts_campaign
+                WHERE campaign_batch_tag IS NOT NULL
+                ORDER BY campaign_batch_tag
+            """)
+            
+            batch_tags = cursor.fetchall()
+            
+            # Add "All" option
+            contact_batch_combo.addItem("All Batch Tags", "all")
+            
+            # Add batch tags to combo box
+            for tag in batch_tags:
+                contact_batch_combo.addItem(tag['campaign_batch_tag'], tag['campaign_batch_tag'])
+            
+            conn.close()
+            
+            if self.parent:
+                QMessageBox.information(self.parent, "Campaigns Loaded", "Campaigns and batch tags loaded successfully.")
+            
+            return True
+            
+        except Exception as e:
+            if self.parent:
+                QMessageBox.critical(self.parent, "Error", f"Error loading campaigns: {e}")
+            return False
+    
+    def load_contacts(self, campaign_id, batch_tag):
+        """Load contacts for the selected campaign and batch tag"""
+        try:
+            # Connect to database
+            conn = sqlite3.connect(DB_PATH)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            # First check if company_id column exists in contacts_campaign table
+            cursor.execute("PRAGMA table_info(contacts_campaign)")
+            columns = [col[1] for col in cursor.fetchall()]
+            has_company_id = 'company_id' in columns
+            
+            if not has_company_id and self.parent:
+                QMessageBox.warning(self.parent, "Database Warning", 
+                    "The contacts_campaign table doesn't have a company_id column. Please run the database setup script."
+                )
+            
+            # Get approved contacts for this campaign, filtered by tag if specified
+            query = """
+                SELECT 
+                    c.id,
+                    c.contact_id,
+                    c.Name,
+                    c.Last_Name,
+                    c.Role,
+                    c.Mobile_Phone,
+                    c.Email,
+                    c.LinkedIn_URL,
+                    co.name as company_name,
+                    cc.campaign_batch_tag,
+                    c.City,
+                    c.State,
+                    c.Country,
+                    COALESCE(cc.company_id, c.company_id) as company_id
+                FROM contacts_campaign cc
+                LEFT JOIN contacts c ON cc.contact_id = c.contact_id
+                LEFT JOIN companies co ON c.company_id = co.company_id
+                WHERE cc.campaign_id = ? 
+                AND cc.current_state = 'approved'
+                AND c.contact_id IS NOT NULL
+            """
+            
+            params = [campaign_id]
+            
+            # Add tag filter if not "all"
+            if batch_tag != "all":
+                query += " AND cc.campaign_batch_tag = ?"
+                params.append(batch_tag)
+                
+            query += " ORDER BY c.Name, c.Last_Name"
+            
+            cursor.execute(query, params)
+            contacts = cursor.fetchall()
+            
+            conn.close()
+            
+            # Store contacts in list
+            self.contacts_list = list(contacts)
+            
+            if not self.contacts_list and self.parent:
+                QMessageBox.warning(self.parent, "No Approved Contacts", 
+                    "No approved contacts found with the selected criteria."
+                )
+                return False
+            
+            return len(self.contacts_list) > 0
+            
+        except Exception as e:
+            if self.parent:
+                QMessageBox.critical(self.parent, "Error", f"Error loading contacts: {e}")
+            return False
+
+    def show_contacts_dialog(self, campaign_name, batch_tag):
+        """Show dialog with contacts"""
+        if not self.contacts_list:
+            return
+        
+        dialog = QDialog(self.parent)
+        dialog.setWindowTitle(f"Phone Dialer - {campaign_name}")
+        dialog.setMinimumWidth(700)
+        dialog.setMinimumHeight(500)
+        
+        # Create layout
+        layout = QVBoxLayout(dialog)
+        
+        # Header with campaign info
+        header_layout = QHBoxLayout()
+        campaign_label = QLabel(f"Campaign: {campaign_name}")
+        campaign_label.setStyleSheet("font-weight: bold; font-size: 16px;")
+        header_layout.addWidget(campaign_label)
+        
+        tag_display = "All Tags" if batch_tag == "all" else batch_tag
+        tag_label = QLabel(f"Tag: {tag_display}")
+        tag_label.setStyleSheet("font-weight: bold; font-size: 16px;")
+        header_layout.addWidget(tag_label)
+        
+        contacts_count = QLabel(f"Contacts: {len(self.contacts_list)}")
+        contacts_count.setStyleSheet("font-weight: bold; font-size: 16px;")
+        header_layout.addWidget(contacts_count)
+        
+        layout.addLayout(header_layout)
+        
+        # Contact info display
+        contact_group = QGroupBox("Contact Information")
+        contact_layout = QVBoxLayout()
+        
+        contact_info = QTextBrowser()
+        contact_info.setMinimumHeight(300)
+        contact_info.setStyleSheet("font-size: 14px;")
+        contact_layout.addWidget(contact_info)
+        
+        # Navigation buttons
+        nav_layout = QHBoxLayout()
+        
+        prev_button = QPushButton("Previous Contact")
+        prev_button.setEnabled(False)
+        nav_layout.addWidget(prev_button)
+        
+        counter_label = QLabel(f"Contact 1 of {len(self.contacts_list)}")
+        counter_label.setAlignment(Qt.AlignCenter)
+        counter_label.setStyleSheet("font-size: 14px; font-weight: bold;")
+        nav_layout.addWidget(counter_label)
+        
+        next_button = QPushButton("Next Contact")
+        next_button.setEnabled(len(self.contacts_list) > 1)
+        nav_layout.addWidget(next_button)
+        
+        contact_layout.addLayout(nav_layout)
+        
+        
+        # Action buttons
+        action_layout = QHBoxLayout()
+        
+        remove_button = QPushButton("Remove")
+        remove_button.setStyleSheet("font-size: 14px; padding: 8px; background-color: #ff9800; color: white;")
+        action_layout.addWidget(remove_button)
+        
+        remove_all_button = QPushButton("Remove All")
+        remove_all_button.setStyleSheet("font-size: 14px; padding: 8px; background-color: #f44336; color: white;")
+        action_layout.addWidget(remove_all_button)
+        
+        opportunity_button = QPushButton("Opportunity")
+        opportunity_button.setStyleSheet("font-size: 14px; padding: 8px; background-color: #2196F3; color: white;")
+        action_layout.addWidget(opportunity_button)
+        
+        contact_layout.addLayout(action_layout)
+        
+        contact_group.setLayout(contact_layout)
+        layout.addWidget(contact_group)
+        
+        # Close button
+        close_button = QPushButton("Close")
+        close_button.clicked.connect(dialog.reject)
+        layout.addWidget(close_button)
+        
+        # Set current contact index
+        self.current_contact_index = 0
+        
+        # Function to display the current contact
+        def display_contact():
+            if self.current_contact_index < 0 or self.current_contact_index >= len(self.contacts_list):
+                return
+                
+            contact = self.contacts_list[self.current_contact_index]
+            
+            # Format display with HTML - using safe field access
+            try:
+                city = self._safe_get_field(contact, 'City')
+                state = self._safe_get_field(contact, 'State')
+                country = self._safe_get_field(contact, 'Country')
+                location_parts = list(filter(None, [city, state, country]))
+                location = ', '.join(location_parts) if location_parts else 'Not specified'
+                
+                html = f"""
+                <div style="font-family: Arial, sans-serif;">
+                    <h2>{self._safe_get_field(contact, 'Name')} {self._safe_get_field(contact, 'Last_Name')}</h2>
+                    <p><b>Role:</b> {self._safe_get_field(contact, 'Role', 'Not specified')}</p>
+                    <hr>
+                    <p><b>Phone:</b> {self._safe_get_field(contact, 'Mobile_Phone', 'Not available')}</p>
+                    <p><b>Email:</b> {self._safe_get_field(contact, 'Email', 'Not available')}</p>
+                    <p><b>LinkedIn:</b> <a href="{self._safe_get_field(contact, 'LinkedIn_URL', '#')}">{self._safe_get_field(contact, 'LinkedIn_URL', 'Not available')}</a></p>
+                    <hr>
+                    <p><b>Company:</b> {self._safe_get_field(contact, 'company_name', 'Not specified')}</p>
+                    <p><b>Location:</b> {location}</p>
+                    <p><b>Batch Tag:</b> {self._safe_get_field(contact, 'campaign_batch_tag', 'Not specified')}</p>
+                </div>
+                """
+            except Exception as e:
+                html = f"""
+                <div style="font-family: Arial, sans-serif;">
+                    <h2>Error displaying contact</h2>
+                    <p>There was an error accessing contact fields: {e}</p>
+                </div>
+                """
+            
+            contact_info.setHtml(html)
+            counter_label.setText(f"Contact {self.current_contact_index + 1} of {len(self.contacts_list)}")
+            
+            prev_button.setEnabled(self.current_contact_index > 0)
+            next_button.setEnabled(self.current_contact_index < len(self.contacts_list) - 1)
+        
+        # Connect navigation buttons
+        prev_button.clicked.connect(lambda: self.navigate_contact(-1, display_contact))
+        next_button.clicked.connect(lambda: self.navigate_contact(1, display_contact))
+        
+        # Connect action buttons
+        remove_button.clicked.connect(lambda: self.remove_contact(display_contact))
+        remove_all_button.clicked.connect(lambda: self.remove_all_contacts(display_contact))
+        opportunity_button.clicked.connect(lambda: self.mark_as_opportunity(display_contact))
+        
+        # Display the first contact
+        display_contact()
+        
+        # Show dialog
+        dialog.exec_()
+    
+    def navigate_contact(self, direction, update_function):
+        """Navigate to previous or next contact"""
+        new_index = self.current_contact_index + direction
+        if 0 <= new_index < len(self.contacts_list):
+            self.current_contact_index = new_index
+            update_function()
+            
+    
+    def remove_contact(self, update_function):
+        """Remove just this contact (set to rejected)"""
+        if not self.contacts_list or self.current_contact_index < 0:
+            return
+            
+        contact = self.contacts_list[self.current_contact_index]
+        
+        # Direct access approach - bypassing 'in' operator
+        contact_id = None
+        
+        try:
+            # First try contact_id field directly
+            contact_id = str(contact['contact_id'])
+        except:
+            try:
+                # Then try id field directly
+                contact_id = str(contact['id'])
+            except:
+                # Last try with dict approach
+                contact_dict = dict(contact)
+                contact_id = contact_dict.get('contact_id') or contact_dict.get('id')
+        
+        # Force to string to handle any weird data types
+        if contact_id:
+            contact_id = str(contact_id)
+            
+        if not contact_id:
+            if self.parent:
+                QMessageBox.warning(self.parent, "Error", "Contact ID not found despite all attempts to retrieve it.")
+            return
+            
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            
+            # Update contact state to rejected in contacts_campaign
+            cursor.execute(
+                "UPDATE contacts_campaign SET current_state = 'rejected', reason = 'Manually rejected' "
+                "WHERE contact_id = ? AND current_state = 'approved'",
+                (contact_id,)
+            )
+            
+            conn.commit()
+            conn.close()
+            
+            # Remove from local list
+            self.contacts_list.pop(self.current_contact_index)
+            
+            if not self.contacts_list:
+                if self.parent:
+                    QMessageBox.information(self.parent, "All Contacts Processed", 
+                        "All contacts have been processed. The dialog will now close."
+                    )
+                return
+            
+            # Adjust index if needed
+            if self.current_contact_index >= len(self.contacts_list):
+                self.current_contact_index = len(self.contacts_list) - 1
+            
+            # Update display
+            update_function()
+            
+            if self.parent:
+                QMessageBox.information(self.parent, "Contact Removed", 
+                    f"Contact {contact['Name']} {contact['Last_Name']} has been removed."
+                )
+            
+        except Exception as e:
+            if self.parent:
+                QMessageBox.critical(self.parent, "Error", f"Error removing contact: {str(e)}")
+    
+    def remove_all_contacts(self, update_function):
+        """Remove all contacts from this company and update company status in companies_campaign"""
+        if not self.contacts_list or self.current_contact_index < 0:
+            return
+            
+        # Get the current contact and extract company_id
+        contact = self.contacts_list[self.current_contact_index]
+        contact_dict = dict(contact)
+        
+        # Extract fields we need
+        try:
+            company_id = contact_dict.get('company_id')
+            if not company_id:
+                if self.parent:
+                    QMessageBox.warning(self.parent, "Error", "Company ID not found for this contact.")
+                return
+        except Exception as e:
+            if self.parent:
+                QMessageBox.critical(self.parent, "Error", f"Error extracting company_id: {str(e)}")
+            return
+        
+        # Now that we have company_id, execute database operations
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            # First, get the campaign_id for this contact/company
+            cursor.execute(
+                """
+                SELECT campaign_id 
+                FROM contacts_campaign 
+                WHERE contact_id IN (
+                    SELECT contact_id FROM contacts WHERE company_id = ?
+                )
+                LIMIT 1
+                """, 
+                (company_id,)
+            )
+            result = cursor.fetchone()
+            
+            if not result:
+                if self.parent:
+                    QMessageBox.warning(self.parent, "Error", "Could not find campaign_id for this company.")
+                conn.close()
+                return
+                
+            campaign_id = result[0]
+            
+            # Update all contacts from this company to rejected in the campaign
+            cursor.execute(
+                """
+                UPDATE contacts_campaign 
+                SET current_state = 'rejected', reason = 'All company contacts rejected' 
+                WHERE contact_id IN (
+                    SELECT contact_id FROM contacts WHERE company_id = ?
+                )
+                AND campaign_id = ? 
+                AND current_state = 'approved'
+                """,
+                (company_id, campaign_id)
+            )
+            
+            contact_updates = cursor.rowcount
+            
+            # Also update the company status in companies_campaign
+            cursor.execute(
+                """
+                UPDATE companies_campaign 
+                SET current_state = 'rejected', reason = 'All contacts rejected' 
+                WHERE company_id = ? 
+                AND campaign_id = ? 
+                AND current_state = 'approved'
+                """,
+                (company_id, campaign_id)
+            )
+            
+            company_updates = cursor.rowcount
+            
+            conn.commit()
+            
+            # Show result message
+            if self.parent:
+                QMessageBox.information(
+                    self.parent, 
+                    "Update Complete", 
+                    f"Updated {contact_updates} contacts and {company_updates} companies to rejected state."
+                )
+            
+            # Remove rejected contacts from our displayed list
+            rejected_indices = []
+            for i, c in enumerate(self.contacts_list):
+                try:
+                    c_dict = dict(c)
+                    if c_dict.get('company_id') == company_id:
+                        rejected_indices.append(i)
+                except:
+                    pass
+                    
+            # Remove from highest index to lowest to avoid reindexing issues
+            for i in sorted(rejected_indices, reverse=True):
+                if i < len(self.contacts_list):
+                    self.contacts_list.pop(i)
+            
+            # Update the display
+            if not self.contacts_list:
+                if self.parent:
+                    QMessageBox.information(self.parent, "All Contacts Processed", 
+                        "All contacts have been processed. The dialog will now close."
+                    )
+                return
+            
+            # Reset index if needed
+            if self.current_contact_index >= len(self.contacts_list):
+                self.current_contact_index = len(self.contacts_list) - 1
+                
+            # Update the display
+            update_function()
+            
+            conn.close()
+                    (contact_id,)
+                )
+                result = cursor.fetchone()
+                if result and result[0]:
+                    company_id = result[0]
+                conn.close()
+            except Exception as e:
+                print(f"Error querying contacts_campaign: {e}")
+        
+        # If still not found, try to get from contacts table
+        if not company_id:
+            try:
+                conn = sqlite3.connect(DB_PATH)
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT company_id FROM contacts WHERE contact_id = ?",
+                    (contact_id,)
+                )
+                result = cursor.fetchone()
+                conn.close()
+                
+                if result and result[0]:
+                    company_id = result[0]
+                    if self.parent:
+                        print(f"Found company_id in contacts table: {company_id}")
+            except Exception as e:
+                if self.parent:
+                    print(f"Error looking up company_id: {str(e)}")
+        
+        if not company_id:
+            if self.parent:
+                QMessageBox.warning(self.parent, "Error", "Company ID not found for this contact.")
+            return
+            
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            
+            # Get the campaign_id from current contact
+            cursor.execute(
+                "SELECT campaign_id FROM contacts_campaign WHERE contact_id = ? AND current_state = 'approved' LIMIT 1",
+                (contact_id,)
+            )
+            campaign_result = cursor.fetchone()
+            
+            if not campaign_result:
+                if self.parent:
+                    QMessageBox.warning(self.parent, "Error", "Could not find campaign information for this contact.")
+                conn.close()
+                return
+                
+            campaign_id = campaign_result[0]
+            
+            # Update all contacts from this company to rejected in the campaign
+            cursor.execute(
+                """
+                UPDATE contacts_campaign 
+                SET current_state = 'rejected', reason = 'All company contacts rejected' 
+                WHERE contact_id IN (
+                    SELECT c.contact_id FROM contacts c 
+                    WHERE c.company_id = ?
+                )
+                AND campaign_id = ? 
+                AND current_state = 'approved'
+                """,
+                (company_id, campaign_id)
+            )
+            
+            # First check if the companies_campaign table actually has this company
+            cursor.execute(
+                """
+                SELECT COUNT(*) FROM companies_campaign 
+                WHERE company_id = ? AND campaign_id = ? AND current_state = 'approved'
+                """,
+                (company_id, campaign_id)
+            )
+            company_exists = cursor.fetchone()[0] > 0
+            
+            if company_exists:
+                # Update the company status in companies_campaign
+                cursor.execute(
+                    """
+                    UPDATE companies_campaign 
+                    SET current_state = 'rejected', reason = 'All contacts rejected' 
+                    WHERE company_id = ? 
+                    AND campaign_id = ? 
+                    AND current_state = 'approved'
+                    """,
+                    (company_id, campaign_id)
+                )
+            else:
+                # Company not in companies_campaign table - add debug information
+                if self.parent:
+                    QMessageBox.information(self.parent, "Company Not Found", 
+                        f"Note: Company ID {company_id} was not found in the companies_campaign table.\n"
+                        f"Only the contacts were rejected."
+                    )
+            
+            conn.commit()
+            
+            # Get contacts to remove from local list using our helper method
+            company_contacts_indices = self._get_contacts_by_company_id(company_id)
+            
+            # Remove from highest index to lowest to avoid reindexing issues
+            for i in sorted(company_contacts_indices, reverse=True):
+                if i < len(self.contacts_list):
+                    self.contacts_list.pop(i)
+            
+            if not self.contacts_list:
+                if self.parent:
+                    QMessageBox.information(self.parent, "All Contacts Processed", 
+                        "All contacts have been processed. The dialog will now close."
+                    )
+                return
+            
+            # Reset index
+            self.current_contact_index = 0
+            
+            # Update display
+            update_function()
+            
+            if self.parent:
+                QMessageBox.information(self.parent, "Company Contacts Removed", 
+                    f"All contacts from company '{contact['company_name']}' have been removed."
+                )
+            
+            conn.close()
+            
+        except Exception as e:
+            if self.parent:
+                QMessageBox.critical(self.parent, "Error", f"Error removing contacts: {str(e)}")
+    
+    def mark_as_opportunity(self, update_function):
+        """Mark as opportunity"""
+        if not self.contacts_list or self.current_contact_index < 0:
+            return
+            
+        contact = self.contacts_list[self.current_contact_index]
+        
+        # Direct access approach - bypassing 'in' operator
+        contact_id = None
+        
+        try:
+            # First try contact_id field directly
+            contact_id = str(contact['contact_id'])
+        except:
+            try:
+                # Then try id field directly
+                contact_id = str(contact['id'])
+            except:
+                # Last try with dict approach
+                contact_dict = dict(contact)
+                contact_id = contact_dict.get('contact_id') or contact_dict.get('id')
+        
+        # Force to string to handle any weird data types
+        if contact_id:
+            contact_id = str(contact_id)
+            
+        if not contact_id:
+            if self.parent:
+                QMessageBox.warning(self.parent, "Error", "Contact ID not found despite all attempts to retrieve it.")
+            return
+            
+        # Get company_id with multiple fallbacks
+        company_id = None
+        
+        # Try to get company_id from the contact record
+        if 'company_id' in contact and contact['company_id']:
+            company_id = contact['company_id']
+        
+        # If not found, try to get from contacts_campaign table
+        if not company_id:
+            try:
+                conn = sqlite3.connect(DB_PATH)
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT company_id FROM contacts_campaign WHERE contact_id = ? AND company_id IS NOT NULL LIMIT 1",
+                    (contact_id,)
+                )
+                result = cursor.fetchone()
+                if result and result[0]:
+                    company_id = result[0]
+                conn.close()
+            except Exception as e:
+                print(f"Error querying contacts_campaign: {e}")
+        
+        # If still not found, try to get from contacts table
+        if not company_id:
+            try:
+                conn = sqlite3.connect(DB_PATH)
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT company_id FROM contacts WHERE contact_id = ?",
+                    (contact_id,)
+                )
+                result = cursor.fetchone()
+                conn.close()
+                
+                if result and result[0]:
+                    company_id = result[0]
+                    if self.parent:
+                        print(f"Found company_id in contacts table: {company_id}")
+            except Exception as e:
+                if self.parent:
+                    print(f"Error looking up company_id: {str(e)}")
+        
+        if not company_id:
+            if self.parent:
+                QMessageBox.warning(self.parent, "Error", "Company ID not found for this contact.")
+            return
+            
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            
+            # Check if opportunities table exists, if not create it
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS opportunities (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    contact_id TEXT,
+                    company_id TEXT,
+                    name TEXT,
+                    last_name TEXT,
+                    role TEXT,
+                    email TEXT,
+                    phone TEXT,
+                    linkedin_url TEXT,
+                    company_name TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    status TEXT DEFAULT 'new',
+                    notes TEXT,
+                    FOREIGN KEY (contact_id) REFERENCES contacts(contact_id),
+                    FOREIGN KEY (company_id) REFERENCES companies(company_id)
+                )
+            """)
+            
+            # Get the campaign_id from current contact
+            cursor.execute(
+                "SELECT campaign_id FROM contacts_campaign WHERE contact_id = ? AND current_state = 'approved' LIMIT 1",
+                (contact_id,)
+            )
+            campaign_result = cursor.fetchone()
+            
+            if not campaign_result:
+                if self.parent:
+                    QMessageBox.warning(self.parent, "Error", "Could not find campaign information for this contact.")
+                conn.close()
+                return
+                
+            campaign_id = campaign_result[0]
+            
+            # Add contact to opportunities
+            cursor.execute(
+                """
+                INSERT INTO opportunities (
+                    contact_id, company_id, name, last_name, role, email, phone, linkedin_url, company_name
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    contact_id, 
+                    company_id,
+                    self._safe_get_field(contact, 'Name'),
+                    self._safe_get_field(contact, 'Last_Name'),
+                    self._safe_get_field(contact, 'Role'),
+                    self._safe_get_field(contact, 'Email'),
+                    self._safe_get_field(contact, 'Mobile_Phone'),
+                    self._safe_get_field(contact, 'LinkedIn_URL'),
+                    self._safe_get_field(contact, 'company_name')
+                )
+            )
+            
+            # Update all contacts from this company to rejected in the campaign
+            cursor.execute(
+                """
+                UPDATE contacts_campaign 
+                SET current_state = 'rejected', reason = 'Marked as opportunity' 
+                WHERE contact_id IN (
+                    SELECT c.contact_id FROM contacts c 
+                    WHERE c.company_id = ?
+                )
+                AND campaign_id = ? 
+                AND current_state = 'approved'
+                """,
+                (company_id, campaign_id)
+            )
+            
+            # First check if the companies_campaign table actually has this company
+            cursor.execute(
+                """
+                SELECT COUNT(*) FROM companies_campaign 
+                WHERE company_id = ? AND campaign_id = ? AND current_state = 'approved'
+                """,
+                (company_id, campaign_id)
+            )
+            company_exists = cursor.fetchone()[0] > 0
+            
+            if company_exists:
+                # Update the company status in companies_campaign
+                cursor.execute(
+                    """
+                    UPDATE companies_campaign 
+                    SET current_state = 'rejected', reason = 'Marked as opportunity' 
+                    WHERE company_id = ? 
+                    AND campaign_id = ? 
+                    AND current_state = 'approved'
+                    """,
+                    (company_id, campaign_id)
+                )
+            else:
+                # Company not in companies_campaign table - add debug information
+                if self.parent:
+                    QMessageBox.information(self.parent, "Company Not Found", 
+                        f"Note: Company ID {company_id} was not found in the companies_campaign table.\n"
+                        f"Only the contacts were rejected."
+                    )
+            
+            conn.commit()
+            
+            # Get contacts to remove from local list using our helper method
+            company_contacts_indices = self._get_contacts_by_company_id(company_id)
+            
+            # Remove from highest index to lowest to avoid reindexing issues
+            for i in sorted(company_contacts_indices, reverse=True):
+                if i < len(self.contacts_list):
+                    self.contacts_list.pop(i)
+            
+            if not self.contacts_list:
+                if self.parent:
+                    QMessageBox.information(self.parent, "All Contacts Processed", 
+                        "All contacts have been processed. The dialog will now close."
+                    )
+                return
+            
+            # Reset index
+            self.current_contact_index = 0
+            
+            # Update display
+            update_function()
+            
+            if self.parent:
+                QMessageBox.information(self.parent, "Marked as Opportunity", 
+                    f"Contact from company '{contact['company_name']}' has been marked as an opportunity and removed from campaign."
+                )
+            
+            conn.close()
+            
+        except Exception as e:
+            if self.parent:
+                QMessageBox.critical(self.parent, "Error", f"Error marking as opportunity: {str(e)}")
+
+# For standalone testing
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    
+    # Create main window
+    window = QMainWindow()
+    window.setWindowTitle("Phone Dialer")
+    window.setMinimumSize(800, 600)
+    
+    # Create central widget
+    central_widget = QWidget()
+    window.setCentralWidget(central_widget)
+    
+    # Create layout
+    layout = QVBoxLayout(central_widget)
+    
+    # Create header
+    header_label = QLabel("Phone Dialer Test")
+    header_label.setAlignment(Qt.AlignCenter)
+    header_label.setStyleSheet("font-size: 24px; font-weight: bold; margin: 20px;")
+    layout.addWidget(header_label)
+    
+    # Show window
+    window.show()
+    
+    sys.exit(app.exec_())

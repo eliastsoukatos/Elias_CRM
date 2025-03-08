@@ -1,2 +1,0 @@
-# cognism_extracter
-

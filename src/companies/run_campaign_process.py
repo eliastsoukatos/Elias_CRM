@@ -31,8 +31,12 @@ def get_db_connection():
     """
     Create a database connection to the SQLite database.
     """
-    # Always use the absolute path to the database - hardcoded for reliability
-    db_path = "/home/eliastsoukatos/Documents/Python/CRM/databases/database.db"
+    # Use platform-independent path using environment variable or construct it
+    project_root = os.environ.get('PROJECT_ROOT')
+    if not project_root:
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    
+    db_path = os.path.join(project_root, 'databases', 'database.db')
     
     print(f"{Colors.CYAN}Using database path: {db_path}{Colors.END}")
     

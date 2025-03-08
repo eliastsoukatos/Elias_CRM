@@ -6,6 +6,7 @@ import uuid
 import sqlite3
 from sqlite3 import Error
 import logging
+import platform
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QLabel, QPushButton, 
                             QVBoxLayout, QHBoxLayout, QWidget, QFileDialog, 
                             QTableWidget, QTableWidgetItem, QComboBox, QMessageBox,
@@ -20,17 +21,25 @@ from db_initializer import check_for_database
 from preprocessor import preprocessor, clean_url
 from csv_parser import get_db_columns, load_previous_mappings, save_mappings, create_new_column, create_new_table
 
+# Initialize console encoding for Windows
+if platform.system() == 'Windows':
+    try:
+        import colorama
+        colorama.init()
+    except ImportError:
+        pass  # colorama not installed, colors won't work
+
 # ANSI color codes for console output if needed
 class Colors:
-    HEADER = '\033[95m'
-    BLUE = '\033[94m'
-    CYAN = '\033[96m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-    END = '\033[0m'
+    HEADER = '\033[95m' if platform.system() != 'Windows' else ''
+    BLUE = '\033[94m' if platform.system() != 'Windows' else ''
+    CYAN = '\033[96m' if platform.system() != 'Windows' else ''
+    GREEN = '\033[92m' if platform.system() != 'Windows' else ''
+    YELLOW = '\033[93m' if platform.system() != 'Windows' else ''
+    RED = '\033[91m' if platform.system() != 'Windows' else ''
+    BOLD = '\033[1m' if platform.system() != 'Windows' else ''
+    UNDERLINE = '\033[4m' if platform.system() != 'Windows' else ''
+    END = '\033[0m' if platform.system() != 'Windows' else ''
 
 class NewColumnDialog(QDialog):
     """Dialog for creating a new column in an existing table"""

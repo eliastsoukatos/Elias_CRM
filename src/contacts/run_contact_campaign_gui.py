@@ -16,15 +16,18 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if project_root not in sys.path:
     sys.path.append(project_root)
 
-# Make the database path accessible - use absolute path for reliability
-db_path = "/home/eliastsoukatos/Documents/Python/CRM/databases/database.db"
+# Make the database path accessible - use platform-independent path
+# Get the project root directory (two levels up from current directory)
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+db_path = os.path.join(project_root, 'databases', 'database.db')
 
 # Verify database path exists
 if not os.path.exists(db_path):
     print(f"ERROR: Database not found at {db_path}")
     
-    # Try to find it using relative path
-    fallback_path = os.path.join(project_root, 'databases', 'database.db')
+    # Try to find it using another method
+    alt_project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    fallback_path = os.path.join(alt_project_root, 'databases', 'database.db')
     if os.path.exists(fallback_path):
         print(f"Using fallback database path: {fallback_path}")
         db_path = fallback_path

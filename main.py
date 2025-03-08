@@ -17,8 +17,10 @@ if not debug_mode:
     original_stderr = sys.stderr
     
     # Redirect stdout/stderr to null device (suppress output)
-    sys.stdout = open(os.devnull, 'w')
-    sys.stderr = open(os.devnull, 'w')
+    # Use platform-independent method with os.devnull
+    null_device = open(os.devnull, 'w')
+    sys.stdout = null_device
+    sys.stderr = null_device
 
 def main():
     try:

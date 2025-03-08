@@ -7,7 +7,7 @@ STATE_TIMEZONE_MAPPING = {
     "Mississippi": "CT", "Alabama": "CT", "Tennessee": "CT", "Kentucky": "CT",
     "Indiana": "ET", "Ohio": "ET", "West Virginia": "ET", "Virginia": "ET", "North Carolina": "ET", "South Carolina": "ET",
     "Georgia": "ET", "Florida": "ET", "Michigan": "ET", "Pennsylvania": "ET", "New York": "ET", "New Jersey": "ET",
-    "Connecticut": "ET", "Rhode Island": "ET", "Massachusetts": "ET", "Vermont": "ET", "New Hampshire": "ET", "Maine": "ET", "D.C.": "ET", "D.C": "ET", "DC": "ET"
+    "Connecticut": "ET", "Rhode Island": "ET", "Massachusetts": "ET", "Maryland": "ET", "Hawaii": "HT", "Vermont": "ET", "New Hampshire": "ET", "Maine": "ET", "D.C.": "ET", "D.C": "ET", "DC": "ET"
 }
 
 # European countries and their respective timezones
