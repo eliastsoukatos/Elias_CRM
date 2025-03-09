@@ -19,8 +19,8 @@ def randomize_wait_time(base_time):
 # Function to randomize batch size per batch (changes each time)
 def get_random_batch_size():
     base_size = int(os.getenv("TABS_PER_BATCH", 2))  # Default batch size
-    min_val = max(1, base_size - 1)  # Ensure at least 1 tab per batch
-    max_val = base_size + 1  # Slight variation
+    min_val = max(1, base_size - 0)  # Ensure at least 1 tab per batch
+    max_val = base_size + 0  # Slight variation
     return random.randint(min_val, max_val)  # ✅ Generates a new value every time
 
 # Time settings with randomization
