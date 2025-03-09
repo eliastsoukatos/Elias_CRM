@@ -32,7 +32,7 @@ if project_root not in sys.path:
     sys.path.append(project_root)
 
 # Make the database path accessible - use absolute path for reliability
-db_path = "/home/eliastsoukatos/Documents/Python/CRM/databases/database.db"
+db_path = r"C:\Users\EliasTsoukatos\Documents\software_code\Elias_CRM\databases\database.db"
 
 # Verify database path exists
 if not os.path.exists(db_path):
