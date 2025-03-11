@@ -524,6 +524,7 @@ class PhoneDialerApp:
                     c.City,
                     c.State,
                     c.Country,
+                    c.Timezone,  -- Added Timezone field here
                     COALESCE(cc.company_id, c.company_id) as company_id,
                     cc.notes,
                     cc.counter,
@@ -841,6 +842,9 @@ class PhoneDialerApp:
                 location_parts = list(filter(None, [city, state, country]))
                 location = ', '.join(location_parts) if location_parts else 'Not specified'
                 
+                # Retrieve Timezone field
+                timezone = self._safe_get_field(contact, 'Timezone', 'Not specified')
+                
                 html = f"""
                 <div style="font-family: Arial, sans-serif;">
                     <h2>{self._safe_get_field(contact, 'Name')} {self._safe_get_field(contact, 'Last_Name')}</h2>
@@ -852,6 +856,7 @@ class PhoneDialerApp:
                     <hr>
                     <p><b>Company:</b> {self._safe_get_field(contact, 'company_name', 'Not specified')}</p>
                     <p><b>Location:</b> {location}</p>
+                    <p><b>Timezone:</b> {timezone}</p>
                     <p><b>Batch Tag:</b> {self._safe_get_field(contact, 'campaign_batch_tag', 'Not specified')}</p>
                 </div>
                 """
@@ -1553,6 +1558,33 @@ if __name__ == "__main__":
     header_label.setAlignment(Qt.AlignCenter)
     header_label.setStyleSheet("font-size: 24px; font-weight: bold; margin: 20px;")
     layout.addWidget(header_label)
+    
+    # For demonstration purposes, we'll create a dummy combo box for campaigns and batches
+    # In real usage, these should be populated with actual data from your database
+    from PyQt5.QtWidgets import QComboBox, QPushButton
+    campaign_combo = QComboBox()
+    batch_combo = QComboBox()
+    layout.addWidget(campaign_combo)
+    layout.addWidget(batch_combo)
+    
+    # Instantiate PhoneDialerApp
+    dialer_app = PhoneDialerApp(window)
+    
+    # Dummy load campaigns into the combo boxes (this assumes that load_campaigns works without actual database data)
+    dialer_app.load_campaigns(campaign_combo, batch_combo)
+    
+    # Dummy button to load contacts and show dialog (for testing)
+    def show_dialog():
+        # For testing, we use dummy campaign_id and batch_tag values.
+        # Replace these with actual values from your campaigns.
+        campaign_id = campaign_combo.itemData(campaign_combo.currentIndex())
+        batch_tag = batch_combo.itemData(batch_combo.currentIndex())
+        if dialer_app.load_contacts(campaign_id, batch_tag):
+            dialer_app.show_contacts_dialog(campaign_combo.currentText(), batch_tag)
+    
+    test_button = QPushButton("Show Contacts Dialog")
+    test_button.clicked.connect(show_dialog)
+    layout.addWidget(test_button)
     
     # Show window
     window.show()
