@@ -10,6 +10,9 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton,
                            QFormLayout, QDialog, QTextBrowser)
 from PyQt5.QtCore import Qt, QObject, QEvent, pyqtSignal, QThread
 from PyQt5.QtGui import QCursor
+from send_email import send_project_email
+
+
 
 # Try to import pyautogui for automated mouse control
 try:
@@ -691,6 +694,26 @@ class PhoneDialerApp:
         copy_email_button.setFixedSize(QSize(24, 24))
         copy_buttons_layout.addWidget(copy_email_button)
         
+        # --- NUEVO: Agregar botón "Send Email" ---
+        send_email_button = QToolButton()
+        send_email_button.setToolTip("Send Email")
+        send_email_button.setText("✉")  # Emoji de sobre
+        send_email_button.setStyleSheet("""
+            QToolButton {
+                background-color: #673AB7;
+                color: white;
+                border-radius: 3px;
+                padding: 3px;
+                font-size: 14px;
+            }
+            QToolButton:hover {
+                background-color: #5E35B1;
+            }
+        """)
+        send_email_button.setFixedSize(QSize(24, 24))
+        copy_buttons_layout.addWidget(send_email_button)
+        # --- Fin botón "Send Email" ---
+        
         # Add the copy buttons layout to the contact info layout
         contact_info_layout.addLayout(copy_buttons_layout)
         
@@ -824,6 +847,26 @@ class PhoneDialerApp:
                 if self.parent:
                     QMessageBox.warning(self.parent, "Error", f"Could not save notes: {str(e)}")
             
+        # --- NUEVA FUNCIÓN: Enviar Email al contacto actual ---
+        def send_email_current_contact():
+            if self.current_contact_index < 0 or self.current_contact_index >= len(self.contacts_list):
+                return
+            contact = self.contacts_list[self.current_contact_index]
+            recipient_email = self._safe_get_field(contact, 'Email', '')
+            if not recipient_email:
+                QMessageBox.warning(self.parent, "Sin Email", "El contacto actual no tiene email.")
+                return
+            company = self._safe_get_field(contact, 'company_name', 'No Company')
+            name_field = self._safe_get_field(contact, 'Name', '')
+            last_name_field = self._safe_get_field(contact, 'Last_Name', '')
+            recipient_name = f"{name_field} {last_name_field}".strip()
+        
+            send_project_email(recipient_email, company, recipient_name)
+            QMessageBox.information(self.parent, "Email Enviado", f"Se ha enviado un email a {recipient_email}.")
+        # Conectar el botón "Send Email" al evento
+        send_email_button.clicked.connect(send_email_current_contact)
+        # --- FIN NUEVA FUNCIÓN ---
+        
         # Function to display the current contact
         def display_contact():
             if self.current_contact_index < 0 or self.current_contact_index >= len(self.contacts_list):
@@ -944,28 +987,22 @@ class PhoneDialerApp:
             email = self._safe_get_field(contact, 'Email', '')
             
             if email:
-                # Import clipboard and QMessageBox
                 from PyQt5.QtGui import QGuiApplication
-                
-                # Copy to clipboard
                 clipboard = QGuiApplication.clipboard()
                 clipboard.setText(email)
-                
-                # Show small notification
                 if self.parent:
                     QMessageBox.information(self.parent, "Email Copied", f"Email address copied to clipboard: {email}")
         
-        # Define button click handlers for A and B buttons
+        copy_email_button.clicked.connect(copy_email_to_clipboard)
+        
+        # Functions for coordinate capture buttons
         def capture_coordinate_a():
-            # Get coordinate using the selector
             coordinates = self.coordinate_selector.get_coordinate("A")
             
-            # If coordinates were selected
             if coordinates:
                 x, y = coordinates
                 self.coord_a = (x, y)
                 
-                # Update button appearance
                 capture_a_button.setToolTip(f"Coordinate A: ({x}, {y})")
                 capture_a_button.setStyleSheet("""
                     QToolButton {
@@ -981,20 +1018,15 @@ class PhoneDialerApp:
                         background-color: #0b7dda;
                     }
                 """)
-                
-                # Show confirmation (optional - already shown by the input dialog)
                 print(f"Coordinate A set to: ({x}, {y})")
             
         def capture_coordinate_b():
-            # Get coordinate using the selector
             coordinates = self.coordinate_selector.get_coordinate("B")
             
-            # If coordinates were selected
             if coordinates:
                 x, y = coordinates
                 self.coord_b = (x, y)
                 
-                # Update button appearance
                 capture_b_button.setToolTip(f"Coordinate B: ({x}, {y})")
                 capture_b_button.setStyleSheet("""
                     QToolButton {
@@ -1010,21 +1042,15 @@ class PhoneDialerApp:
                         background-color: #7B1FA2;
                     }
                 """)
-                
-                # Show confirmation (optional - already shown by the input dialog)
                 print(f"Coordinate B set to: ({x}, {y})")
         
         # Connect coordinate capture buttons
         capture_a_button.clicked.connect(capture_coordinate_a)
         capture_b_button.clicked.connect(capture_coordinate_b)
         
-        # Connect copy email button
-        copy_email_button.clicked.connect(copy_email_to_clipboard)
-        
         # Handle dialog close event to clean up browser resources
         def on_dialog_closed():
             print("Dialog closing - cleaning up browser resources")
-            # Clean up browser thread
             if hasattr(self, 'browser_thread') and self.browser_thread is not None:
                 if hasattr(self.browser_thread, 'cleanup'):
                     self.browser_thread.cleanup()
@@ -1038,10 +1064,8 @@ class PhoneDialerApp:
             if self.current_contact_index < 0 or self.current_contact_index >= len(self.contacts_list):
                 return
                 
-            # Save notes before taking action
             save_notes()
             
-            # Get contact's phone number
             contact = self.contacts_list[self.current_contact_index]
             phone = self._safe_get_field(contact, 'Mobile_Phone', '')
             
@@ -1050,19 +1074,16 @@ class PhoneDialerApp:
                     QMessageBox.warning(self.parent, "No Phone Number", "This contact doesn't have a phone number.")
                 return
                 
-            # Check if we have coordinate A set
             if not hasattr(self, 'coord_a') or not self.coord_a:
                 if self.parent:
                     QMessageBox.warning(self.parent, "Coordinate Missing", "Please set coordinate A first by clicking the A button.")
                 return
                 
-            # Check if we have coordinate B set
             if not hasattr(self, 'coord_b') or not self.coord_b:
                 if self.parent:
                     QMessageBox.warning(self.parent, "Coordinate Missing", "Please set coordinate B first by clicking the B button.")
                 return
                 
-            # Check if pyautogui is available
             if not PYAUTOGUI_AVAILABLE:
                 if self.parent:
                     QMessageBox.critical(self.parent, "Missing Dependency", 
@@ -1072,26 +1093,18 @@ class PhoneDialerApp:
             try:
                 from PyQt5.QtGui import QGuiApplication
                 
-                # Copy phone number to clipboard
                 clipboard = QGuiApplication.clipboard()
                 clipboard.setText(phone)
                 
-                # Click on coordinate A
                 pyautogui.click(self.coord_a[0], self.coord_a[1])
-                
-                # Small pause to ensure the click is registered
                 time.sleep(0.5)
                 
-                # Paste the phone number (Ctrl+V or Command+V on macOS)
                 if sys.platform == 'darwin':
                     pyautogui.hotkey('command', 'v')
                 else:
                     pyautogui.hotkey('ctrl', 'v')
                 
-                # Small pause before clicking coordinate B
                 time.sleep(0.5)
-                
-                # Click on coordinate B
                 pyautogui.click(self.coord_b[0], self.coord_b[1])
                 
             except Exception as e:
@@ -1102,16 +1115,13 @@ class PhoneDialerApp:
             if self.current_contact_index < 0 or self.current_contact_index >= len(self.contacts_list):
                 return
                 
-            # Save notes before taking action
             save_notes()
             
-            # Check if we have coordinate B set
             if not hasattr(self, 'coord_b') or not self.coord_b:
                 if self.parent:
                     QMessageBox.warning(self.parent, "Coordinate Missing", "Please set coordinate B first by clicking the B button.")
                 return
                 
-            # Check if pyautogui is available
             if not PYAUTOGUI_AVAILABLE:
                 if self.parent:
                     QMessageBox.critical(self.parent, "Missing Dependency", 
@@ -1119,33 +1129,26 @@ class PhoneDialerApp:
                 return
                 
             try:
-                # Click on coordinate B
                 pyautogui.click(self.coord_b[0], self.coord_b[1])
                 
             except Exception as e:
                 if self.parent:
                     QMessageBox.critical(self.parent, "Error", f"Error during automatic hangup: {str(e)}")
         
-        # Connect phone buttons
         green_phone_button.clicked.connect(on_green_phone_click)
         red_phone_button.clicked.connect(on_red_phone_click)
         
-        # Connect dialog closing to save notes
         dialog.finished.connect(save_notes)
         
-        # Connect action buttons with saving notes before actions
         remove_button.clicked.connect(lambda: [save_notes(), self.remove_contact(display_contact)])
         remove_all_button.clicked.connect(lambda: [save_notes(), self.remove_all_contacts(display_contact)])
         opportunity_button.clicked.connect(lambda: [save_notes(), self.mark_as_opportunity(display_contact)])
         
-        # Display the first contact
         display_contact()
         
-        # Show dialog
         dialog.exec_()
     
     def navigate_contact(self, direction, update_function):
-        """Navigate to previous or next contact"""
         new_index = self.current_contact_index + direction
         if 0 <= new_index < len(self.contacts_list):
             self.current_contact_index = new_index
@@ -1153,35 +1156,27 @@ class PhoneDialerApp:
             
     
     def remove_contact(self, update_function):
-        """Remove just this contact (set to rejected)"""
         if not self.contacts_list or self.current_contact_index < 0:
             return
             
         contact = self.contacts_list[self.current_contact_index]
-        
-        # Direct access approach - bypassing 'in' operator
         contact_id = None
         counter = None
         notes = None
         
         try:
-            # First try contact_id field directly
             contact_id = str(contact['contact_id'])
-            # Try to get the counter and notes
             counter = self._safe_get_field(contact, 'counter')
             notes = self._safe_get_field(contact, 'notes', '')
         except:
             try:
-                # Then try id field directly
                 contact_id = str(contact['id'])
             except:
-                # Last try with dict approach
                 contact_dict = dict(contact)
                 contact_id = contact_dict.get('contact_id') or contact_dict.get('id')
                 counter = contact_dict.get('counter')
                 notes = contact_dict.get('notes', '')
         
-        # Force to string to handle any weird data types
         if contact_id:
             contact_id = str(contact_id)
             
@@ -1194,7 +1189,6 @@ class PhoneDialerApp:
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
             
-            # If we have a notes text field, get the latest notes
             try:
                 from PyQt5.QtWidgets import QTextEdit
                 for widget in self.parent.findChildren(QTextEdit):
@@ -1204,24 +1198,20 @@ class PhoneDialerApp:
             except:
                 pass
             
-            # Update contact state to rejected in contacts_campaign
             if counter:
                 cursor.execute(
-                    "UPDATE contacts_campaign SET current_state = 'rejected', reason = 'Manually rejected', notes = ? "
-                    "WHERE counter = ?",
+                    "UPDATE contacts_campaign SET current_state = 'rejected', reason = 'Manually rejected', notes = ? WHERE counter = ?",
                     (notes, counter)
                 )
             else:
                 cursor.execute(
-                    "UPDATE contacts_campaign SET current_state = 'rejected', reason = 'Manually rejected', notes = ? "
-                    "WHERE contact_id = ? AND current_state = 'approved'",
+                    "UPDATE contacts_campaign SET current_state = 'rejected', reason = 'Manually rejected', notes = ? WHERE contact_id = ? AND current_state = 'approved'",
                     (notes, contact_id)
                 )
             
             conn.commit()
             conn.close()
             
-            # Remove from local list
             self.contacts_list.pop(self.current_contact_index)
             
             if not self.contacts_list:
@@ -1231,11 +1221,9 @@ class PhoneDialerApp:
                     )
                 return
             
-            # Adjust index if needed
             if self.current_contact_index >= len(self.contacts_list):
                 self.current_contact_index = len(self.contacts_list) - 1
             
-            # Update display
             update_function()
             
             if self.parent:
@@ -1248,12 +1236,10 @@ class PhoneDialerApp:
                 QMessageBox.critical(self.parent, "Error", f"Error removing contact: {str(e)}")
     
     def remove_all_contacts(self, update_function):
-        """Remove all contacts from this company and update company status in companies_campaign"""
         if not self.contacts_list or self.current_contact_index < 0:
             return
             
         try:
-            # Get the current contact and extract company_id
             contact = self.contacts_list[self.current_contact_index]
             contact_dict = dict(contact)
             company_id = contact_dict.get('company_id')
@@ -1263,12 +1249,9 @@ class PhoneDialerApp:
                     QMessageBox.warning(self.parent, "Error", "Company ID not found for this contact.")
                 return
                 
-            # Execute the database updates
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
             
-            # First get the campaign_id
-            # Try to find the campaign_id for contacts from this company
             cursor.execute("""
                 SELECT DISTINCT campaign_id 
                 FROM contacts_campaign 
@@ -1287,7 +1270,6 @@ class PhoneDialerApp:
                 
             campaign_id = result[0]
             
-            # Get any notes from the text field if it exists
             notes = ""
             try:
                 from PyQt5.QtWidgets import QTextEdit
@@ -1298,7 +1280,6 @@ class PhoneDialerApp:
             except:
                 pass
                 
-            # Update the contacts from this company to rejected
             cursor.execute("""
                 UPDATE contacts_campaign 
                 SET current_state = 'rejected', reason = 'All company contacts rejected', notes = ? 
@@ -1311,7 +1292,6 @@ class PhoneDialerApp:
             
             contacts_updated = cursor.rowcount
             
-            # Update the company in companies_campaign
             cursor.execute("""
                 UPDATE companies_campaign 
                 SET current_state = 'rejected', reason = 'All contacts rejected' 
@@ -1325,7 +1305,6 @@ class PhoneDialerApp:
             conn.commit()
             conn.close()
             
-            # Remove contacts with this company_id from the displayed list
             indices_to_remove = []
             for i, c in enumerate(self.contacts_list):
                 try:
@@ -1335,12 +1314,10 @@ class PhoneDialerApp:
                 except:
                     pass
                     
-            # Remove from highest index to lowest to avoid reindexing issues
             for i in sorted(indices_to_remove, reverse=True):
                 if i < len(self.contacts_list):
                     self.contacts_list.pop(i)
             
-            # Show completion message
             if self.parent:
                 QMessageBox.information(
                     self.parent, 
@@ -1348,7 +1325,6 @@ class PhoneDialerApp:
                     f"Updated {contacts_updated} contacts and {company_updated} companies to rejected state."
                 )
             
-            # Check if we have any contacts left
             if not self.contacts_list:
                 if self.parent:
                     QMessageBox.information(self.parent, "All Contacts Processed", 
@@ -1356,11 +1332,9 @@ class PhoneDialerApp:
                     )
                 return
             
-            # Reset index if needed
             if self.current_contact_index >= len(self.contacts_list):
                 self.current_contact_index = len(self.contacts_list) - 1
                 
-            # Update the UI
             update_function()
             
         except Exception as e:
@@ -1368,12 +1342,10 @@ class PhoneDialerApp:
                 QMessageBox.critical(self.parent, "Error", f"Error removing contacts: {str(e)}")
     
     def mark_as_opportunity(self, update_function):
-        """Mark as opportunity"""
         if not self.contacts_list or self.current_contact_index < 0:
             return
             
         try:
-            # Get the current contact and extract company_id
             contact = self.contacts_list[self.current_contact_index]
             contact_dict = dict(contact)
             company_id = contact_dict.get('company_id')
@@ -1381,7 +1353,6 @@ class PhoneDialerApp:
             counter = contact_dict.get('counter')
             notes = contact_dict.get('notes', '')
             
-            # Try to get notes from the text field if it exists
             try:
                 from PyQt5.QtWidgets import QTextEdit
                 for widget in self.parent.findChildren(QTextEdit):
@@ -1401,11 +1372,9 @@ class PhoneDialerApp:
                     QMessageBox.warning(self.parent, "Error", "Contact ID not found.")
                 return
                 
-            # Execute the database updates
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
             
-            # Check if opportunities table exists, if not create it
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS opportunities (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1426,8 +1395,6 @@ class PhoneDialerApp:
                 )
             """)
             
-            # First get the campaign_id
-            # Try to find the campaign_id for contacts from this company
             cursor.execute("""
                 SELECT DISTINCT campaign_id 
                 FROM contacts_campaign 
@@ -1446,7 +1413,6 @@ class PhoneDialerApp:
                 
             campaign_id = result[0]
             
-            # Add contact to opportunities
             cursor.execute(
                 """
                 INSERT INTO opportunities (
@@ -1467,7 +1433,6 @@ class PhoneDialerApp:
                 )
             )
             
-            # Update the contacts from this company to rejected
             cursor.execute("""
                 UPDATE contacts_campaign 
                 SET current_state = 'rejected', reason = 'Marked as opportunity' 
@@ -1480,7 +1445,6 @@ class PhoneDialerApp:
             
             contacts_updated = cursor.rowcount
             
-            # Update the company in companies_campaign
             cursor.execute("""
                 UPDATE companies_campaign 
                 SET current_state = 'rejected', reason = 'Marked as opportunity' 
@@ -1494,7 +1458,6 @@ class PhoneDialerApp:
             conn.commit()
             conn.close()
             
-            # Remove contacts with this company_id from the displayed list
             indices_to_remove = []
             for i, c in enumerate(self.contacts_list):
                 try:
@@ -1504,12 +1467,10 @@ class PhoneDialerApp:
                 except:
                     pass
                     
-            # Remove from highest index to lowest to avoid reindexing issues
             for i in sorted(indices_to_remove, reverse=True):
                 if i < len(self.contacts_list):
                     self.contacts_list.pop(i)
             
-            # Show completion message
             if self.parent:
                 QMessageBox.information(
                     self.parent, 
@@ -1518,7 +1479,6 @@ class PhoneDialerApp:
                     f"Updated {contacts_updated} contacts and {company_updated} companies to rejected state."
                 )
             
-            # Check if we have any contacts left
             if not self.contacts_list:
                 if self.parent:
                     QMessageBox.information(self.parent, "All Contacts Processed", 
@@ -1526,11 +1486,9 @@ class PhoneDialerApp:
                     )
                 return
             
-            # Reset index if needed
             if self.current_contact_index >= len(self.contacts_list):
                 self.current_contact_index = len(self.contacts_list) - 1
                 
-            # Update the UI
             update_function()
             
         except Exception as e:
@@ -1560,7 +1518,6 @@ if __name__ == "__main__":
     layout.addWidget(header_label)
     
     # For demonstration purposes, we'll create a dummy combo box for campaigns and batches
-    # In real usage, these should be populated with actual data from your database
     from PyQt5.QtWidgets import QComboBox, QPushButton
     campaign_combo = QComboBox()
     batch_combo = QComboBox()
@@ -1575,8 +1532,6 @@ if __name__ == "__main__":
     
     # Dummy button to load contacts and show dialog (for testing)
     def show_dialog():
-        # For testing, we use dummy campaign_id and batch_tag values.
-        # Replace these with actual values from your campaigns.
         campaign_id = campaign_combo.itemData(campaign_combo.currentIndex())
         batch_tag = batch_combo.itemData(batch_combo.currentIndex())
         if dialer_app.load_contacts(campaign_id, batch_tag):

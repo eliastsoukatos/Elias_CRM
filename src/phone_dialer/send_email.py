@@ -12,11 +12,14 @@ def send_project_email(recipient_email, company, recipient_name):
 
     subject = "AI Project Opportunity with Bank of America | Gen AI Automation"
     
+    # Use only the first name from recipient_name
+    first_name = recipient_name.split()[0] if recipient_name else recipient_name
+
     # HTML body for a professional look and feel
     html_body = f"""
     <html>
       <body style="font-family: Arial, sans-serif; line-height: 1.6;">
-        <p>Hi {recipient_name},</p>
+        <p>Hi {first_name},</p>
         <p>
           I wanted to reach out regarding a new initiative we're working on with Bank of America.
           Their Director of Global Markets and Risk Technology is currently seeking vendors to help automate 
@@ -32,13 +35,13 @@ def send_project_email(recipient_email, company, recipient_name):
         <p>
           I was checking out <strong>{company}</strong> and I really liked your website.
           If this aligns with your capabilities, I’d love to schedule a brief call to discuss potential collaboration.
-          You can easily schedule a meeting using the link below:
+          You can easily schedule a meeting using the following link:
         </p>
         <p>
-          <a href="https://calendly.com/elias-tsoukatos-gdsgroup/30min" style="color: #1a73e8; text-decoration: none;">Schedule a Meeting</a>
+          https://calendly.com/elias-tsoukatos-gdsgroup/30min
         </p>
         <p>
-          For context, GDS (<a href="http://gdsgroup.com" style="color: #1a73e8; text-decoration: none;">gdsgroup.com</a>) is a strategic vendor evaluation firm.
+          For context, GDS (gdsgroup.com) is a strategic vendor evaluation firm.
           We help Fortune 2000 C-suite executives identify, assess, and engage the right vendors and technology partners for their key initiatives.
         </p>
         <p>
@@ -58,9 +61,11 @@ def send_project_email(recipient_email, company, recipient_name):
           GDS Group<br>
           225 Liberty St<br>
           New York, USA<br>
-          <a href="mailto:elias.tsoukatos@gdsgroup.com" style="color: #1a73e8; text-decoration: none;">elias.tsoukatos@gdsgroup.com</a><br>
+          <a href="mailto:elias.tsoukatos@gdsgroup.com" style="color: #1a73e8; text-decoration: none;">
+            elias.tsoukatos@gdsgroup.com</a><br>
           +1 910-421-9278<br>
-          <a href="http://gdsgroup.com" style="color: #1a73e8; text-decoration: none;">gdsgroup.com</a>
+          <a href="http://gdsgroup.com" style="color: #1a73e8; text-decoration: none;">
+            gdsgroup.com</a>
         </p>
       </body>
     </html>
@@ -80,14 +85,14 @@ def send_project_email(recipient_email, company, recipient_name):
         server.login(SENDER_EMAIL, SENDER_PASSWORD)
         server.sendmail(SENDER_EMAIL, recipient_email, msg.as_string())
         server.quit()
-        print(f"✅ Email sent to {recipient_name} ({recipient_email})")
+        print(f"✅ Email sent to {first_name} ({recipient_email})")
     except Exception as e:
-        print(f"❌ Failed to send email to {recipient_name} ({recipient_email}): {e}")
+        print(f"❌ Failed to send email to {first_name} ({recipient_email}): {e}")
 
 # Example usage:
 if __name__ == "__main__":
     # Replace these with the actual recipient details
     recipient = "etsoukatos@aimonkey.io"
     company = "aiMonkey"
-    recipient_name = "Elias"
+    recipient_name = "Elias Semeney"
     send_project_email(recipient, company, recipient_name)
