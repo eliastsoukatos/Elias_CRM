@@ -7,7 +7,7 @@ def send_project_email(recipient_email, company, recipient_name):
     SMTP_SERVER = "smtp-mail.outlook.com"
     SMTP_PORT = 587
     SENDER_EMAIL = "elias.tsoukatos@gdsgroup.com"
-    SENDER_PASSWORD = "Gds2024!"  # Replace with your actual app password if required
+    SENDER_PASSWORD = "sdfgfdgsdf!"  # Replace with your actual app password if required
     SENDER_NAME = "Elias Tsoukatos"  # Display name for the sender
 
     subject = "AI Project Opportunity with Bank of America | Gen AI Automation"
