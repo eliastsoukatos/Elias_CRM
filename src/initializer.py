@@ -2,19 +2,25 @@ import os
 import sys
 import uuid
 import importlib
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton, 
-                           QVBoxLayout, QWidget, QLabel, QHBoxLayout, 
-                           QGroupBox, QStackedWidget, QMessageBox,
-                           QLineEdit, QSpinBox, QCheckBox, QListWidget, QListWidgetItem,
-                           QFormLayout, QDialog)
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton,
+                             QVBoxLayout, QWidget, QLabel, QHBoxLayout,
+                             QGroupBox, QStackedWidget, QMessageBox,
+                             QLineEdit, QSpinBox, QCheckBox, QListWidget, QListWidgetItem,
+                             QFormLayout, QDialog)
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QFont, QIcon, QPixmap
 
+from src.companies.src_companies import migrate_social_links
+from src.companies.src_companies.clean_ratings import clean_rating_records
+from src.companies.src_companies.clean_verifications import clean_verification_records
+from src.companies.src_companies.db_initializer import check_for_database
+
 # RUTA HARDCODEADA A LA BASE DE DATOS (ajústala si es necesario)
-HARD_CODED_DB_PATH = r"C:\Users\EliasTsoukatos\Documents\software_code\Elias_CRM\databases\database.db"
+HARD_CODED_DB_PATH = "/Users/anthonyhurtado/Jobs/personal/others/Elias_CRM/databases/database.db"
 
 # Add phone_dialer directory to path
-phone_dialer_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'phone_dialer')
+phone_dialer_dir = os.path.join(os.path.dirname(
+    os.path.abspath(__file__)), 'phone_dialer')
 if phone_dialer_dir not in sys.path:
     sys.path.insert(0, phone_dialer_dir)
 
@@ -30,10 +36,6 @@ for path in [companies_dir, src_companies_dir, contacts_dir, cognism_dir]:
         sys.path.insert(0, path)
 
 # Import necessary modules
-from db_initializer import check_for_database
-from migrate_social_links import migrate_social_links
-from clean_verifications import clean_verification_records
-from clean_ratings import clean_rating_records
 
 
 def get_db_path():
@@ -49,7 +51,8 @@ def initialize_app():
         print("❌ Database initialization failed.")
         return
     try:
-        sys.path.append(os.path.join(os.path.dirname(__file__), 'contacts', 'cognism_scraper', 'src', 'utils'))
+        sys.path.append(os.path.join(os.path.dirname(__file__),
+                        'contacts', 'cognism_scraper', 'src', 'utils'))
         from create_database import create_table
         create_table()
         print("✅ Contacts database tables created successfully")
@@ -86,7 +89,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.init_ui()
-        
+
     def init_ui(self):
         self.setWindowTitle("CRM System")
         self.setMinimumSize(800, 600)
@@ -95,7 +98,8 @@ class MainWindow(QMainWindow):
         main_layout = QVBoxLayout(central_widget)
         header_label = QLabel("CRM SYSTEM")
         header_label.setAlignment(Qt.AlignCenter)
-        header_label.setStyleSheet("font-size: 24px; font-weight: bold; margin: 20px;")
+        header_label.setStyleSheet(
+            "font-size: 24px; font-weight: bold; margin: 20px;")
         main_layout.addWidget(header_label)
         self.stacked_widget = QStackedWidget()
         main_layout.addWidget(self.stacked_widget)
@@ -120,7 +124,8 @@ class MainWindow(QMainWindow):
         self.csv_layout = csv_layout
         back_button = QPushButton("Back to Sourcing Menu")
         back_button.setStyleSheet("font-size: 14px; padding: 10px;")
-        back_button.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(self.SOURCING_MENU))
+        back_button.clicked.connect(
+            lambda: self.stacked_widget.setCurrentIndex(self.SOURCING_MENU))
         csv_layout.addWidget(back_button)
         # Define indices
         self.MAIN_MENU = 0
@@ -156,24 +161,28 @@ class MainWindow(QMainWindow):
         self.stacked_widget.addWidget(self.contacts_campaigns_menu_screen)
         self.stacked_widget.addWidget(self.phone_dialer_screen)
         self.stacked_widget.setCurrentIndex(self.MAIN_MENU)
-        
+
     def create_main_menu(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         menu_group = QGroupBox("MAIN MENU")
-        menu_group.setStyleSheet("QGroupBox { font-size: 18px; font-weight: bold; }")
+        menu_group.setStyleSheet(
+            "QGroupBox { font-size: 18px; font-weight: bold; }")
         menu_layout = QVBoxLayout()
         companies_button = QPushButton("Companies")
         companies_button.setStyleSheet("font-size: 16px; padding: 15px;")
-        companies_button.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(self.COMPANIES_MENU))
+        companies_button.clicked.connect(
+            lambda: self.stacked_widget.setCurrentIndex(self.COMPANIES_MENU))
         menu_layout.addWidget(companies_button)
         contacts_button = QPushButton("Contacts")
         contacts_button.setStyleSheet("font-size: 16px; padding: 15px;")
-        contacts_button.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(self.CONTACTS_MENU))
+        contacts_button.clicked.connect(
+            lambda: self.stacked_widget.setCurrentIndex(self.CONTACTS_MENU))
         menu_layout.addWidget(contacts_button)
         phone_dialer_button = QPushButton("Phone Dialer")
         phone_dialer_button.setStyleSheet("font-size: 16px; padding: 15px;")
-        phone_dialer_button.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(self.PHONE_DIALER))
+        phone_dialer_button.clicked.connect(
+            lambda: self.stacked_widget.setCurrentIndex(self.PHONE_DIALER))
         menu_layout.addWidget(phone_dialer_button)
         exit_button = QPushButton("Exit")
         exit_button.setStyleSheet("font-size: 16px; padding: 15px;")
@@ -187,15 +196,18 @@ class MainWindow(QMainWindow):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         menu_group = QGroupBox("COMPANIES MODULE")
-        menu_group.setStyleSheet("QGroupBox { font-size: 18px; font-weight: bold; }")
+        menu_group.setStyleSheet(
+            "QGroupBox { font-size: 18px; font-weight: bold; }")
         menu_layout = QVBoxLayout()
         sourcing_button = QPushButton("Sourcing")
         sourcing_button.setStyleSheet("font-size: 16px; padding: 15px;")
-        sourcing_button.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(self.SOURCING_MENU))
+        sourcing_button.clicked.connect(
+            lambda: self.stacked_widget.setCurrentIndex(self.SOURCING_MENU))
         menu_layout.addWidget(sourcing_button)
         campaigns_button = QPushButton("Campaigns")
         campaigns_button.setStyleSheet("font-size: 16px; padding: 15px;")
-        campaigns_button.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(self.CAMPAIGNS_MENU))
+        campaigns_button.clicked.connect(
+            lambda: self.stacked_widget.setCurrentIndex(self.CAMPAIGNS_MENU))
         menu_layout.addWidget(campaigns_button)
         view_button = QPushButton("View (Coming Soon)")
         view_button.setStyleSheet("font-size: 16px; padding: 15px;")
@@ -203,7 +215,8 @@ class MainWindow(QMainWindow):
         menu_layout.addWidget(view_button)
         back_button = QPushButton("Back to Main Menu")
         back_button.setStyleSheet("font-size: 16px; padding: 15px;")
-        back_button.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(self.MAIN_MENU))
+        back_button.clicked.connect(
+            lambda: self.stacked_widget.setCurrentIndex(self.MAIN_MENU))
         menu_layout.addWidget(back_button)
         menu_group.setLayout(menu_layout)
         layout.addWidget(menu_group)
@@ -213,11 +226,13 @@ class MainWindow(QMainWindow):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         menu_group = QGroupBox("COMPANY SOURCING")
-        menu_group.setStyleSheet("QGroupBox { font-size: 18px; font-weight: bold; }")
+        menu_group.setStyleSheet(
+            "QGroupBox { font-size: 18px; font-weight: bold; }")
         menu_layout = QVBoxLayout()
         scraper_button = QPushButton("Select Scraper")
         scraper_button.setStyleSheet("font-size: 16px; padding: 15px;")
-        scraper_button.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(self.SCRAPER_SELECTOR))
+        scraper_button.clicked.connect(
+            lambda: self.stacked_widget.setCurrentIndex(self.SCRAPER_SELECTOR))
         menu_layout.addWidget(scraper_button)
         csv_button = QPushButton("Import CSV File")
         csv_button.setStyleSheet("font-size: 16px; padding: 15px;")
@@ -229,7 +244,8 @@ class MainWindow(QMainWindow):
         menu_layout.addWidget(query_button)
         back_button = QPushButton("Back to Companies Menu")
         back_button.setStyleSheet("font-size: 16px; padding: 15px;")
-        back_button.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(self.COMPANIES_MENU))
+        back_button.clicked.connect(
+            lambda: self.stacked_widget.setCurrentIndex(self.COMPANIES_MENU))
         menu_layout.addWidget(back_button)
         menu_group.setLayout(menu_layout)
         layout.addWidget(menu_group)
@@ -239,15 +255,18 @@ class MainWindow(QMainWindow):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         menu_group = QGroupBox("COMPANY CAMPAIGNS")
-        menu_group.setStyleSheet("QGroupBox { font-size: 18px; font-weight: bold; }")
+        menu_group.setStyleSheet(
+            "QGroupBox { font-size: 18px; font-weight: bold; }")
         menu_layout = QVBoxLayout()
         create_button = QPushButton("Create New Campaign")
         create_button.setStyleSheet("font-size: 16px; padding: 15px;")
-        create_button.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(self.CREATE_CAMPAIGN))
+        create_button.clicked.connect(
+            lambda: self.stacked_widget.setCurrentIndex(self.CREATE_CAMPAIGN))
         menu_layout.addWidget(create_button)
         select_button = QPushButton("Select Existing Campaign")
         select_button.setStyleSheet("font-size: 16px; padding: 15px;")
-        select_button.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(self.SELECT_CAMPAIGN))
+        select_button.clicked.connect(
+            lambda: self.stacked_widget.setCurrentIndex(self.SELECT_CAMPAIGN))
         menu_layout.addWidget(select_button)
         prospector_button = QPushButton("Run Company Prospector")
         prospector_button.setStyleSheet("font-size: 16px; padding: 15px;")
@@ -255,7 +274,8 @@ class MainWindow(QMainWindow):
         menu_layout.addWidget(prospector_button)
         back_button = QPushButton("Back to Companies Menu")
         back_button.setStyleSheet("font-size: 16px; padding: 15px;")
-        back_button.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(self.COMPANIES_MENU))
+        back_button.clicked.connect(
+            lambda: self.stacked_widget.setCurrentIndex(self.COMPANIES_MENU))
         menu_layout.addWidget(back_button)
         menu_group.setLayout(menu_layout)
         layout.addWidget(menu_group)
@@ -265,14 +285,16 @@ class MainWindow(QMainWindow):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         header_label = QLabel("Available Scrapers")
-        header_label.setStyleSheet("font-size: 20px; font-weight: bold; margin: 10px;")
+        header_label.setStyleSheet(
+            "font-size: 20px; font-weight: bold; margin: 10px;")
         header_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(header_label)
         scrapers_group = QGroupBox("Select a Scraper")
         scrapers_layout = QVBoxLayout()
         clutch_button = QPushButton("Clutch Scraper")
         clutch_button.setStyleSheet("font-size: 16px; padding: 20px;")
-        clutch_button.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(self.CLUTCH_SCRAPER))
+        clutch_button.clicked.connect(
+            lambda: self.stacked_widget.setCurrentIndex(self.CLUTCH_SCRAPER))
         scrapers_layout.addWidget(clutch_button)
         goodfirms_button = QPushButton("GoodFirms Scraper (Coming Soon)")
         goodfirms_button.setStyleSheet("font-size: 16px; padding: 20px;")
@@ -290,7 +312,8 @@ class MainWindow(QMainWindow):
         layout.addWidget(scrapers_group)
         back_button = QPushButton("Back to Sourcing Menu")
         back_button.setStyleSheet("font-size: 14px; padding: 10px;")
-        back_button.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(self.SOURCING_MENU))
+        back_button.clicked.connect(
+            lambda: self.stacked_widget.setCurrentIndex(self.SOURCING_MENU))
         layout.addWidget(back_button)
         return widget
 
@@ -298,7 +321,8 @@ class MainWindow(QMainWindow):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         header_label = QLabel("Clutch Scraper Configuration")
-        header_label.setStyleSheet("font-size: 20px; font-weight: bold; margin: 10px;")
+        header_label.setStyleSheet(
+            "font-size: 20px; font-weight: bold; margin: 10px;")
         header_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(header_label)
         form_group = QGroupBox("Scraper Parameters")
@@ -307,7 +331,8 @@ class MainWindow(QMainWindow):
         self.companies_spin.setMinimum(1)
         self.companies_spin.setMaximum(50000)
         self.companies_spin.setValue(10)
-        form_layout.addRow("Number of companies to extract:", self.companies_spin)
+        form_layout.addRow("Number of companies to extract:",
+                           self.companies_spin)
         self.portfolio_check = QCheckBox()
         self.portfolio_check.setChecked(True)
         form_layout.addRow("Extract portfolio:", self.portfolio_check)
@@ -330,7 +355,8 @@ class MainWindow(QMainWindow):
         url_layout.addWidget(self.url_list)
         url_input_layout = QHBoxLayout()
         self.url_input = QLineEdit()
-        self.url_input.setPlaceholderText("Enter URL (e.g., https://clutch.co/web-developers)")
+        self.url_input.setPlaceholderText(
+            "Enter URL (e.g., https://clutch.co/web-developers)")
         url_input_layout.addWidget(self.url_input)
         add_button = QPushButton("Add URL")
         add_button.clicked.connect(self.add_url)
@@ -344,7 +370,8 @@ class MainWindow(QMainWindow):
         self.url_list.addItem("https://clutch.co/web-developers")
         button_layout = QHBoxLayout()
         back_button = QPushButton("Back to Scraper Selection")
-        back_button.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(self.SCRAPER_SELECTOR))
+        back_button.clicked.connect(
+            lambda: self.stacked_widget.setCurrentIndex(self.SCRAPER_SELECTOR))
         button_layout.addWidget(back_button)
         run_button = QPushButton("Run Scraper")
         run_button.clicked.connect(self.run_clutch_scraper)
@@ -360,8 +387,9 @@ class MainWindow(QMainWindow):
                 self.url_list.addItem(url)
                 self.url_input.clear()
             else:
-                QMessageBox.warning(self, "Invalid URL", "URL must start with http:// or https://")
-    
+                QMessageBox.warning(self, "Invalid URL",
+                                    "URL must start with http:// or https://")
+
     def remove_url(self):
         selected_items = self.url_list.selectedItems()
         if not selected_items:
@@ -369,12 +397,13 @@ class MainWindow(QMainWindow):
         for item in selected_items:
             row = self.url_list.row(item)
             self.url_list.takeItem(row)
-    
+
     def run_clutch_scraper(self):
         try:
             from db_initializer import check_for_database
             if not check_for_database():
-                QMessageBox.critical(self, "Error", "Database not found or initialization failed.")
+                QMessageBox.critical(
+                    self, "Error", "Database not found or initialization failed.")
                 return
             params = {
                 "num_companies": self.companies_spin.value(),
@@ -389,10 +418,12 @@ class MainWindow(QMainWindow):
                 urls.append(self.url_list.item(i).text())
             params["urls"] = urls
             if not urls:
-                QMessageBox.warning(self, "No URLs", "Please add at least one URL to scrape.")
+                QMessageBox.warning(
+                    self, "No URLs", "Please add at least one URL to scrape.")
                 return
             if not params["batch_tag"]:
-                QMessageBox.warning(self, "No Batch Tag", "Please enter a batch tag.")
+                QMessageBox.warning(self, "No Batch Tag",
+                                    "Please enter a batch tag.")
                 return
             confirm_msg = f"""
             Please confirm the following settings:
@@ -406,13 +437,14 @@ class MainWindow(QMainWindow):
             
             Proceed with scraping?
             """
-            confirm = QMessageBox.question(self, "Confirm Scraper Settings", confirm_msg, 
-                                        QMessageBox.Yes | QMessageBox.No)
+            confirm = QMessageBox.question(self, "Confirm Scraper Settings", confirm_msg,
+                                           QMessageBox.Yes | QMessageBox.No)
             if confirm == QMessageBox.Yes:
                 import subprocess
                 original_dir = os.getcwd()
                 try:
-                    temp_script = os.path.join(companies_dir, 'temp_clutch_scraper.py')
+                    temp_script = os.path.join(
+                        companies_dir, 'temp_clutch_scraper.py')
                     with open(temp_script, 'w') as f:
                         f.write(f"""
 import sys
@@ -443,15 +475,17 @@ print("Batch ID: {params['batch_id']}")
 input("Press Enter to continue...")
                         """)
                     os.chdir(companies_dir)
-                    subprocess.Popen([sys.executable, temp_script], shell=True if os.name == 'nt' else False)
-                    QMessageBox.information(self, "Scraper Running", 
-                                         "The scraper is running in the background.\n\n"
-                                         "Please check the terminal window for progress updates.")
+                    subprocess.Popen([sys.executable, temp_script],
+                                     shell=True if os.name == 'nt' else False)
+                    QMessageBox.information(self, "Scraper Running",
+                                            "The scraper is running in the background.\n\n"
+                                            "Please check the terminal window for progress updates.")
                 finally:
                     os.chdir(original_dir)
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Error running scraper: {str(e)}")
-    
+            QMessageBox.critical(
+                self, "Error", f"Error running scraper: {str(e)}")
+
     def run_csv_import(self):
         try:
             import subprocess
@@ -479,26 +513,31 @@ run_csv_import_gui()
             finally:
                 os.chdir(original_dir)
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Error running CSV import: {str(e)}")
-    
+            QMessageBox.critical(
+                self, "Error", f"Error running CSV import: {str(e)}")
+
     def create_campaign_creation_screen(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         header_label = QLabel("Create New Campaign")
-        header_label.setStyleSheet("font-size: 20px; font-weight: bold; margin: 10px;")
+        header_label.setStyleSheet(
+            "font-size: 20px; font-weight: bold; margin: 10px;")
         header_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(header_label)
         form_group = QGroupBox("Campaign Details")
         form_layout = QFormLayout()
         self.campaign_name_input = QLineEdit()
-        self.campaign_name_input.setPlaceholderText("Enter a unique campaign name")
+        self.campaign_name_input.setPlaceholderText(
+            "Enter a unique campaign name")
         form_layout.addRow("Campaign Name:", self.campaign_name_input)
         from PyQt5.QtWidgets import QPlainTextEdit
         self.campaign_query_input = QPlainTextEdit()
-        self.campaign_query_input.setPlaceholderText("e.g., SELECT company_id FROM companies WHERE headcount > 50")
+        self.campaign_query_input.setPlaceholderText(
+            "e.g., SELECT company_id FROM companies WHERE headcount > 50")
         self.campaign_query_input.setMinimumHeight(100)
         form_layout.addRow("SQL Query:", self.campaign_query_input)
-        query_help = QLabel("Query must return company_id field. You can filter companies based on any criteria.")
+        query_help = QLabel(
+            "Query must return company_id field. You can filter companies based on any criteria.")
         query_help.setWordWrap(True)
         query_help.setStyleSheet("color: #666; font-size: 12px;")
         form_layout.addRow("", query_help)
@@ -506,8 +545,10 @@ run_csv_import_gui()
         self.company_count_input.setMinimum(0)
         self.company_count_input.setMaximum(10000)
         self.company_count_input.setValue(0)
-        self.company_count_input.setToolTip("Enter 0 to add all companies matching the query")
-        form_layout.addRow("Number of Companies (0 for all):", self.company_count_input)
+        self.company_count_input.setToolTip(
+            "Enter 0 to add all companies matching the query")
+        form_layout.addRow("Number of Companies (0 for all):",
+                           self.company_count_input)
         self.campaign_batch_tag = QLineEdit()
         self.campaign_batch_tag.setText("initial")
         form_layout.addRow("Batch Tag:", self.campaign_batch_tag)
@@ -515,7 +556,8 @@ run_csv_import_gui()
         layout.addWidget(form_group)
         button_layout = QHBoxLayout()
         back_button = QPushButton("Back to Campaigns Menu")
-        back_button.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(self.CAMPAIGNS_MENU))
+        back_button.clicked.connect(
+            lambda: self.stacked_widget.setCurrentIndex(self.CAMPAIGNS_MENU))
         button_layout.addWidget(back_button)
         button_layout.addStretch()
         create_button = QPushButton("Create Campaign")
@@ -525,12 +567,13 @@ run_csv_import_gui()
         layout.addLayout(button_layout)
         layout.addStretch()
         return widget
-    
+
     def create_campaign_selection_screen(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         header_label = QLabel("Select Existing Campaign")
-        header_label.setStyleSheet("font-size: 20px; font-weight: bold; margin: 10px;")
+        header_label.setStyleSheet(
+            "font-size: 20px; font-weight: bold; margin: 10px;")
         header_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(header_label)
         list_group = QGroupBox("Available Campaigns")
@@ -554,22 +597,26 @@ run_csv_import_gui()
         view_batches_button.clicked.connect(self.view_campaign_batches)
         view_batches_button.setEnabled(False)
         details_layout.addWidget(view_batches_button)
-        run_prospector_button = QPushButton("Run Company Prospector for Campaign")
+        run_prospector_button = QPushButton(
+            "Run Company Prospector for Campaign")
         run_prospector_button.clicked.connect(self.run_company_prospector)
         run_prospector_button.setEnabled(False)
         details_layout.addWidget(run_prospector_button)
-        self.campaign_action_buttons = [add_companies_button, view_batches_button, run_prospector_button]
+        self.campaign_action_buttons = [
+            add_companies_button, view_batches_button, run_prospector_button]
         details_group.setLayout(details_layout)
         layout.addWidget(details_group)
         button_layout = QHBoxLayout()
         back_button = QPushButton("Back to Campaigns Menu")
-        back_button.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(self.CAMPAIGNS_MENU))
+        back_button.clicked.connect(
+            lambda: self.stacked_widget.setCurrentIndex(self.CAMPAIGNS_MENU))
         button_layout.addWidget(back_button)
         layout.addLayout(button_layout)
-        self.campaign_list.itemSelectionChanged.connect(self.on_campaign_selected)
+        self.campaign_list.itemSelectionChanged.connect(
+            self.on_campaign_selected)
         self.refresh_campaign_list()
         return widget
-    
+
     def create_campaign(self):
         from PyQt5.QtWidgets import QMessageBox
         campaign_name = self.campaign_name_input.text().strip()
@@ -577,10 +624,12 @@ run_csv_import_gui()
         batch_tag = self.campaign_batch_tag.text().strip()
         num_companies_requested = self.company_count_input.value()
         if not campaign_name:
-            QMessageBox.warning(self, "Missing Information", "Please enter a campaign name.")
+            QMessageBox.warning(self, "Missing Information",
+                                "Please enter a campaign name.")
             return
         if not campaign_query:
-            QMessageBox.warning(self, "Missing Information", "Please enter an SQL query.")
+            QMessageBox.warning(self, "Missing Information",
+                                "Please enter an SQL query.")
             return
         if not batch_tag:
             batch_tag = "initial"
@@ -593,11 +642,13 @@ run_csv_import_gui()
                 cursor.execute(campaign_query)
                 results = cursor.fetchall()
                 if not results:
-                    QMessageBox.warning(self, "Query Error", "This query returned 0 results.")
+                    QMessageBox.warning(self, "Query Error",
+                                        "This query returned 0 results.")
                     conn.close()
                     return
                 if 'company_id' not in dict(results[0]):
-                    QMessageBox.warning(self, "Query Error", "Query results must include company_id field.")
+                    QMessageBox.warning(
+                        self, "Query Error", "Query results must include company_id field.")
                     conn.close()
                     return
                 total_results = len(results)
@@ -608,7 +659,8 @@ run_csv_import_gui()
                 msg = QMessageBox()
                 msg.setIcon(QMessageBox.Question)
                 msg.setText(f"Create campaign with {num_companies} companies?")
-                msg.setInformativeText(f"Query found {total_results} matching companies. Proceed with creating the campaign?")
+                msg.setInformativeText(
+                    f"Query found {total_results} matching companies. Proceed with creating the campaign?")
                 msg.setWindowTitle("Confirm Campaign Creation")
                 msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
                 if msg.exec_() != QMessageBox.Yes:
@@ -710,12 +762,13 @@ input("Press Enter to continue...")
                         """)
                     os.chdir(companies_dir)
                     env = os.environ.copy()
-                    env['PROJECT_ROOT'] = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    env['PROJECT_ROOT'] = os.path.dirname(
+                        os.path.dirname(os.path.abspath(__file__)))
                     env['DB_PATH'] = HARD_CODED_DB_PATH
                     subprocess.Popen([sys.executable, temp_script], env=env)
                     QMessageBox.information(
-                        self, 
-                        "Campaign Creation", 
+                        self,
+                        "Campaign Creation",
                         f"Creating campaign '{campaign_name}' with {num_companies} companies...\n\nPlease check the terminal window for results."
                     )
                     self.campaign_name_input.clear()
@@ -729,10 +782,12 @@ input("Press Enter to continue...")
                     except:
                         pass
             except Exception as e:
-                QMessageBox.critical(self, "Error", f"Error in campaign creation script: {str(e)}")
+                QMessageBox.critical(
+                    self, "Error", f"Error in campaign creation script: {str(e)}")
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Error testing query: {str(e)}")
-    
+            QMessageBox.critical(
+                self, "Error", f"Error testing query: {str(e)}")
+
     def refresh_campaign_list(self):
         try:
             import sqlite3
@@ -759,13 +814,14 @@ input("Press Enter to continue...")
                 button.setEnabled(False)
             conn.close()
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Error refreshing campaign list: {str(e)}")
-    
+            QMessageBox.critical(
+                self, "Error", f"Error refreshing campaign list: {str(e)}")
+
     def on_campaign_selected(self):
         selected_items = self.campaign_list.selectedItems()
         for button in self.campaign_action_buttons:
             button.setEnabled(len(selected_items) > 0)
-    
+
     def add_companies_to_campaign(self):
         selected_items = self.campaign_list.selectedItems()
         if not selected_items:
@@ -782,10 +838,12 @@ input("Press Enter to continue...")
         layout.addWidget(query_label)
         from PyQt5.QtWidgets import QPlainTextEdit
         query_input = QPlainTextEdit()
-        query_input.setPlaceholderText("e.g., SELECT company_id FROM companies WHERE headcount > 50")
+        query_input.setPlaceholderText(
+            "e.g., SELECT company_id FROM companies WHERE headcount > 50")
         query_input.setMinimumHeight(100)
         layout.addWidget(query_input)
-        query_help = QLabel("Example: SELECT company_id FROM companies WHERE industry = 'Technology'")
+        query_help = QLabel(
+            "Example: SELECT company_id FROM companies WHERE industry = 'Technology'")
         query_help.setStyleSheet("color: #666; font-size: 12px;")
         layout.addWidget(query_help)
         num_companies_layout = QHBoxLayout()
@@ -817,7 +875,8 @@ input("Press Enter to continue...")
             num_companies = num_companies_input.value()
             batch_tag = batch_input.text().strip()
             if not query:
-                QMessageBox.warning(self, "Missing Information", "Please enter an SQL query.")
+                QMessageBox.warning(self, "Missing Information",
+                                    "Please enter an SQL query.")
                 return
             if not batch_tag:
                 batch_tag = "additional"
@@ -934,12 +993,13 @@ print(f"Adding companies result: {{success}}")
 input("\\nPress Enter to continue...")
                         """)
                     env = os.environ.copy()
-                    env['PROJECT_ROOT'] = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    env['PROJECT_ROOT'] = os.path.dirname(
+                        os.path.dirname(os.path.abspath(__file__)))
                     env['DB_PATH'] = HARD_CODED_DB_PATH
                     subprocess.Popen([sys.executable, temp_script], env=env)
                     QMessageBox.information(
-                        self, 
-                        "Adding Companies", 
+                        self,
+                        "Adding Companies",
                         f"Adding companies to campaign '{campaign_name}'...\n\nPlease check the terminal window for progress."
                     )
                 finally:
@@ -949,8 +1009,9 @@ input("\\nPress Enter to continue...")
                     except:
                         pass
             except Exception as e:
-                QMessageBox.critical(self, "Error", f"Error adding companies to campaign: {str(e)}")
-    
+                QMessageBox.critical(
+                    self, "Error", f"Error adding companies to campaign: {str(e)}")
+
     def view_campaign_batches(self):
         selected_items = self.campaign_list.selectedItems()
         if not selected_items:
@@ -989,7 +1050,8 @@ input("\\nPress Enter to continue...")
             if not batches:
                 batch_list.addItem("No batches found for this campaign")
             else:
-                header_item = QListWidgetItem("Batch Tag" + " " * 15 + "Batch ID" + " " * 25 + "Companies" + " " * 5 + "Added At")
+                header_item = QListWidgetItem(
+                    "Batch Tag" + " " * 15 + "Batch ID" + " " * 25 + "Companies" + " " * 5 + "Added At")
                 header_item.setFlags(Qt.NoItemFlags)
                 header_item.setBackground(Qt.lightGray)
                 batch_list.addItem(header_item)
@@ -1002,8 +1064,9 @@ input("\\nPress Enter to continue...")
             layout.addWidget(close_button)
             dialog.exec_()
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Error viewing campaign batches: {str(e)}")
-    
+            QMessageBox.critical(
+                self, "Error", f"Error viewing campaign batches: {str(e)}")
+
     def run_company_prospector(self):
         """Run the company prospector for the selected campaign"""
         selected_items = self.campaign_list.selectedItems()
@@ -1017,7 +1080,8 @@ input("\\nPress Enter to continue...")
         dialog.setWindowTitle(f"Run Prospector for: {campaign_name}")
         dialog.setMinimumWidth(500)
         layout = QVBoxLayout(dialog)
-        header_label = QLabel(f"Select batch to process for campaign: {campaign_name}")
+        header_label = QLabel(
+            f"Select batch to process for campaign: {campaign_name}")
         header_label.setStyleSheet("font-size: 14px; font-weight: bold;")
         layout.addWidget(header_label)
         batch_label = QLabel("Select a batch:")
@@ -1044,13 +1108,15 @@ input("\\nPress Enter to continue...")
             if batches:
                 for batch in batches:
                     batch_combo.addItem(
-                        f"{batch['campaign_batch_tag']} - {batch['company_count']} companies", 
+                        f"{batch['campaign_batch_tag']} - {batch['company_count']} companies",
                         batch['campaign_batch_id']
                     )
             conn.close()
         except Exception as e:
-            QMessageBox.warning(self, "Batch Load Error", f"Error loading batches: {str(e)}")
-        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+            QMessageBox.warning(self, "Batch Load Error",
+                                f"Error loading batches: {str(e)}")
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         button_box.accepted.connect(dialog.accept)
         button_box.rejected.connect(dialog.reject)
         layout.addWidget(button_box)
@@ -1074,30 +1140,34 @@ campaign_id = {campaign_id}
 batch_id = "{selected_batch}"
 
 if batch_id == "all":
-    command = [sys.executable, r"C:\Users\EliasTsoukatos\Documents\software_code\Elias_CRM\src\companies\run_company_prospector.py", str(campaign_id)]
+    command = [sys.executable, r"/Users/anthonyhurtado/Jobs/personal/others/Elias_CRM/src/companies/run_company_prospector.py", str(campaign_id)]
 else:
-    command = [sys.executable, r"C:\Users\EliasTsoukatos\Documents\software_code\Elias_CRM\src\companies\run_company_prospector.py", str(campaign_id), batch_id]
+    command = [sys.executable, r"/Users/anthonyhurtado/Jobs/personal/others/Elias_CRM/src/companies/run_company_prospector.py", str(campaign_id), batch_id]
 
 print(f"Starting company prospector for campaign: {campaign_name}")
 subprocess.call(command)
                         """)
                     env = os.environ.copy()
-                    env['PROJECT_ROOT'] = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    env['PROJECT_ROOT'] = os.path.dirname(
+                        os.path.dirname(os.path.abspath(__file__)))
                     subprocess.Popen([sys.executable, temp_script], env=env)
                 finally:
                     os.chdir(original_dir)
             except Exception as e:
-                QMessageBox.critical(self, "Error", f"Error running company prospector: {str(e)}")
-    
+                QMessageBox.critical(
+                    self, "Error", f"Error running company prospector: {str(e)}")
+
     def create_contacts_menu(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         menu_group = QGroupBox("CONTACTS MODULE")
-        menu_group.setStyleSheet("QGroupBox { font-size: 18px; font-weight: bold; }")
+        menu_group.setStyleSheet(
+            "QGroupBox { font-size: 18px; font-weight: bold; }")
         menu_layout = QVBoxLayout()
         sourcing_button = QPushButton("Sourcing")
         sourcing_button.setStyleSheet("font-size: 16px; padding: 15px;")
-        sourcing_button.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(self.CONTACTS_SOURCING_MENU))
+        sourcing_button.clicked.connect(
+            lambda: self.stacked_widget.setCurrentIndex(self.CONTACTS_SOURCING_MENU))
         menu_layout.addWidget(sourcing_button)
         campaigns_button = QPushButton("Campaigns")
         campaigns_button.setStyleSheet("font-size: 16px; padding: 15px;")
@@ -1109,21 +1179,24 @@ subprocess.call(command)
         menu_layout.addWidget(view_button)
         back_button = QPushButton("Back to Main Menu")
         back_button.setStyleSheet("font-size: 16px; padding: 15px;")
-        back_button.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(self.MAIN_MENU))
+        back_button.clicked.connect(
+            lambda: self.stacked_widget.setCurrentIndex(self.MAIN_MENU))
         menu_layout.addWidget(back_button)
         menu_group.setLayout(menu_layout)
         layout.addWidget(menu_group)
         return widget
-    
+
     def create_contacts_sourcing_menu(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         menu_group = QGroupBox("CONTACT SOURCING")
-        menu_group.setStyleSheet("QGroupBox { font-size: 18px; font-weight: bold; }")
+        menu_group.setStyleSheet(
+            "QGroupBox { font-size: 18px; font-weight: bold; }")
         menu_layout = QVBoxLayout()
         scraper_button = QPushButton("Select Scraper")
         scraper_button.setStyleSheet("font-size: 16px; padding: 15px;")
-        scraper_button.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(self.CONTACTS_SCRAPER_SELECTOR))
+        scraper_button.clicked.connect(
+            lambda: self.stacked_widget.setCurrentIndex(self.CONTACTS_SCRAPER_SELECTOR))
         menu_layout.addWidget(scraper_button)
         csv_button = QPushButton("Import CSV File (Coming Soon)")
         csv_button.setStyleSheet("font-size: 16px; padding: 15px;")
@@ -1135,17 +1208,19 @@ subprocess.call(command)
         menu_layout.addWidget(query_button)
         back_button = QPushButton("Back to Contacts Menu")
         back_button.setStyleSheet("font-size: 16px; padding: 15px;")
-        back_button.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(self.CONTACTS_MENU))
+        back_button.clicked.connect(
+            lambda: self.stacked_widget.setCurrentIndex(self.CONTACTS_MENU))
         menu_layout.addWidget(back_button)
         menu_group.setLayout(menu_layout)
         layout.addWidget(menu_group)
         return widget
-    
+
     def create_contacts_scraper_selector(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         header_label = QLabel("Available Contact Scrapers")
-        header_label.setStyleSheet("font-size: 20px; font-weight: bold; margin: 10px;")
+        header_label.setStyleSheet(
+            "font-size: 20px; font-weight: bold; margin: 10px;")
         header_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(header_label)
         scrapers_group = QGroupBox("Select a Scraper")
@@ -1166,17 +1241,19 @@ subprocess.call(command)
         layout.addWidget(scrapers_group)
         back_button = QPushButton("Back to Sourcing Menu")
         back_button.setStyleSheet("font-size: 14px; padding: 10px;")
-        back_button.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(self.CONTACTS_SOURCING_MENU))
+        back_button.clicked.connect(
+            lambda: self.stacked_widget.setCurrentIndex(self.CONTACTS_SOURCING_MENU))
         layout.addWidget(back_button)
         return widget
-    
+
     def select_companies_for_cognism(self):
         try:
             from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QComboBox, QDialogButtonBox, QFileDialog
             import sqlite3
             import os
             import csv
-            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            project_root = os.path.dirname(
+                os.path.dirname(os.path.abspath(__file__)))
             settings_dir = os.path.join(project_root, 'databases')
             settings_file = os.path.join(settings_dir, 'export_settings.txt')
             last_dir = os.path.expanduser('~')
@@ -1192,7 +1269,8 @@ subprocess.call(command)
             dialog.setWindowTitle("Select Companies for Cognism")
             dialog.setMinimumWidth(500)
             layout = QVBoxLayout(dialog)
-            header_label = QLabel("Select a campaign and batch to extract company domains")
+            header_label = QLabel(
+                "Select a campaign and batch to extract company domains")
             header_label.setStyleSheet("font-size: 14px; font-weight: bold;")
             layout.addWidget(header_label)
             campaign_label = QLabel("Select Campaign:")
@@ -1208,21 +1286,25 @@ subprocess.call(command)
                 conn = sqlite3.connect(HARD_CODED_DB_PATH)
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
-                cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+                cursor.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'")
                 tables = cursor.fetchall()
                 print("Tables in database:")
                 for table in tables:
                     print(f"- {table[0]}")
                 has_campaigns = any(t[0] == 'campaigns' for t in tables)
-                has_companies_campaign = any(t[0] == 'companies_campaign' for t in tables)
+                has_companies_campaign = any(
+                    t[0] == 'companies_campaign' for t in tables)
                 print(f"Has campaigns table: {has_campaigns}")
-                print(f"Has companies_campaign table: {has_companies_campaign}")
+                print(
+                    f"Has companies_campaign table: {has_companies_campaign}")
                 if has_campaigns:
                     cursor.execute("SELECT COUNT(*) FROM campaigns")
                     campaign_count = cursor.fetchone()[0]
                     print(f"Number of campaigns: {campaign_count}")
                     if campaign_count > 0:
-                        cursor.execute("SELECT campaign_name FROM campaigns LIMIT 3")
+                        cursor.execute(
+                            "SELECT campaign_name FROM campaigns LIMIT 3")
                         campaign_names = cursor.fetchall()
                         print("Sample campaign names:")
                         for name in campaign_names:
@@ -1237,7 +1319,8 @@ subprocess.call(command)
                     print(f"Executing query: {query}")
                     cursor.execute(query)
                     raw_campaigns = cursor.fetchall()
-                    print(f"Raw query returned {len(raw_campaigns) if raw_campaigns else 0} rows")
+                    print(
+                        f"Raw query returned {len(raw_campaigns) if raw_campaigns else 0} rows")
                     campaigns = []
                     for camp in raw_campaigns:
                         campaign = {
@@ -1247,33 +1330,39 @@ subprocess.call(command)
                         }
                         campaigns.append(campaign)
                     if not campaigns:
-                        QMessageBox.warning(self, "No Campaigns", "No companies have been added to any campaigns. Please create a campaign first.")
+                        QMessageBox.warning(
+                            self, "No Campaigns", "No companies have been added to any campaigns. Please create a campaign first.")
                         conn.close()
                         return
-                    print(f"Created {len(campaigns)} campaign objects for the UI")
+                    print(
+                        f"Created {len(campaigns)} campaign objects for the UI")
                 except Exception as e:
-                    print(f"Error getting campaigns from companies_campaign: {e}")
-                    QMessageBox.critical(self, "Database Error", f"Error querying campaigns: {str(e)}")
+                    print(
+                        f"Error getting campaigns from companies_campaign: {e}")
+                    QMessageBox.critical(
+                        self, "Database Error", f"Error querying campaigns: {str(e)}")
                     conn.close()
                     return
                 if isinstance(campaigns, list):
                     for campaign in campaigns:
                         campaign_combo.addItem(
-                            f"{campaign['campaign_name']} - {campaign['total_companies']} companies", 
+                            f"{campaign['campaign_name']} - {campaign['total_companies']} companies",
                             campaign['campaign_id']
                         )
                 else:
                     for campaign in campaigns:
                         campaign_combo.addItem(
-                            f"{campaign['campaign_name']} - {campaign['total_companies']} companies", 
+                            f"{campaign['campaign_name']} - {campaign['total_companies']} companies",
                             campaign['campaign_id']
                         )
+
                 def update_batches():
                     campaign_id = campaign_combo.currentData()
                     batch_combo.clear()
                     batch_combo.addItem("All Batches", "all")
                     try:
-                        print(f"Getting batches for campaign_id: {campaign_id}")
+                        print(
+                            f"Getting batches for campaign_id: {campaign_id}")
                         query = """
                             SELECT DISTINCT 
                                 campaign_batch_tag,
@@ -1283,18 +1372,21 @@ subprocess.call(command)
                             WHERE campaign_id = ?
                             GROUP BY campaign_batch_tag, campaign_batch_id
                         """
-                        print(f"Executing query: {query} with campaign_id={campaign_id}")
+                        print(
+                            f"Executing query: {query} with campaign_id={campaign_id}")
                         cursor.execute(query, (campaign_id,))
                         raw_batches = cursor.fetchall()
-                        print(f"Raw batch query returned {len(raw_batches) if raw_batches else 0} rows")
+                        print(
+                            f"Raw batch query returned {len(raw_batches) if raw_batches else 0} rows")
                         if raw_batches:
                             for batch in raw_batches:
-                                print(f"Batch found: Tag={batch[0]}, ID={batch[1]}, Companies={batch[2]}")
+                                print(
+                                    f"Batch found: Tag={batch[0]}, ID={batch[1]}, Companies={batch[2]}")
                                 tag = batch[0] if batch[0] is not None else "Unknown"
                                 batch_id = batch[1] if batch[1] is not None else "Unknown"
                                 count = batch[2]
                                 batch_combo.addItem(
-                                    f"{tag} - {count} companies", 
+                                    f"{tag} - {count} companies",
                                     batch_id
                                 )
                     except Exception as e:
@@ -1302,11 +1394,14 @@ subprocess.call(command)
                 campaign_combo.currentIndexChanged.connect(update_batches)
                 update_batches()
             except Exception as e:
-                QMessageBox.critical(self, "Database Error", f"Error loading campaigns: {str(e)}")
+                QMessageBox.critical(self, "Database Error",
+                                     f"Error loading campaigns: {str(e)}")
                 return
             button_box = QDialogButtonBox()
-            extract_button = button_box.addButton("Extract Companies", QDialogButtonBox.AcceptRole)
-            cancel_button = button_box.addButton("Cancel", QDialogButtonBox.RejectRole)
+            extract_button = button_box.addButton(
+                "Extract Companies", QDialogButtonBox.AcceptRole)
+            cancel_button = button_box.addButton(
+                "Cancel", QDialogButtonBox.RejectRole)
             button_box.accepted.connect(dialog.accept)
             button_box.rejected.connect(dialog.reject)
             layout.addWidget(button_box)
@@ -1328,14 +1423,19 @@ subprocess.call(command)
                 with open(settings_file, 'w') as f:
                     f.write(save_dir)
                 try:
-                    print(f"Exporting domains for campaign_id: {campaign_id}, batch_id: {batch_id}")
-                    cursor.execute("SELECT COUNT(*) FROM companies_campaign WHERE campaign_id = ?", (campaign_id,))
+                    print(
+                        f"Exporting domains for campaign_id: {campaign_id}, batch_id: {batch_id}")
+                    cursor.execute(
+                        "SELECT COUNT(*) FROM companies_campaign WHERE campaign_id = ?", (campaign_id,))
                     total_companies = cursor.fetchone()[0]
-                    print(f"Total companies in this campaign: {total_companies}")
+                    print(
+                        f"Total companies in this campaign: {total_companies}")
                     cursor.execute("SELECT COUNT(*) FROM companies")
                     total_all_companies = cursor.fetchone()[0]
-                    print(f"Total companies in database: {total_all_companies}")
-                    cursor.execute("SELECT COUNT(*) FROM companies WHERE domain IS NOT NULL AND domain != ''")
+                    print(
+                        f"Total companies in database: {total_all_companies}")
+                    cursor.execute(
+                        "SELECT COUNT(*) FROM companies WHERE domain IS NOT NULL AND domain != ''")
                     companies_with_domains = cursor.fetchone()[0]
                     print(f"Companies with domains: {companies_with_domains}")
                     if batch_id == "all":
@@ -1344,7 +1444,8 @@ subprocess.call(command)
                             (campaign_id,)
                         )
                         company_ids = [row[0] for row in cursor.fetchall()]
-                        print(f"Found {len(company_ids)} approved companies in this campaign")
+                        print(
+                            f"Found {len(company_ids)} approved companies in this campaign")
                         if not company_ids:
                             print("No approved company IDs found in this campaign!")
                             domains = []
@@ -1361,7 +1462,8 @@ subprocess.call(command)
                             (campaign_id, batch_id)
                         )
                         company_ids = [row[0] for row in cursor.fetchall()]
-                        print(f"Found {len(company_ids)} approved companies in this batch")
+                        print(
+                            f"Found {len(company_ids)} approved companies in this batch")
                         if not company_ids:
                             print("No approved company IDs found in this batch!")
                             domains = []
@@ -1372,7 +1474,8 @@ subprocess.call(command)
                                 company_ids
                             )
                             domains = cursor.fetchall()
-                    print(f"Found {len(domains) if domains else 0} domains for export")
+                    print(
+                        f"Found {len(domains) if domains else 0} domains for export")
                     domain_count = 0
                     with open(file_path, 'w', newline='') as f:
                         if domains:
@@ -1396,17 +1499,20 @@ subprocess.call(command)
                         f"Successfully exported {domain_count} domains from approved companies to {file_path}"
                     )
                 except Exception as e:
-                    QMessageBox.critical(self, "Export Error", f"Error exporting domains: {str(e)}")
+                    QMessageBox.critical(
+                        self, "Export Error", f"Error exporting domains: {str(e)}")
                 finally:
                     conn.close()
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Error selecting companies: {str(e)}")
-    
+            QMessageBox.critical(
+                self, "Error", f"Error selecting companies: {str(e)}")
+
     def create_cognism_scraper_options(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         header_label = QLabel("Cognism Scraper")
-        header_label.setStyleSheet("font-size: 20px; font-weight: bold; margin: 10px;")
+        header_label.setStyleSheet(
+            "font-size: 20px; font-weight: bold; margin: 10px;")
         header_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(header_label)
         actions_group = QGroupBox("Cognism Scraper Actions")
@@ -1423,18 +1529,20 @@ subprocess.call(command)
         layout.addWidget(actions_group)
         back_button = QPushButton("Back to Scraper Selection")
         back_button.setStyleSheet("font-size: 14px; padding: 10px;")
-        back_button.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(self.CONTACTS_SCRAPER_SELECTOR))
+        back_button.clicked.connect(
+            lambda: self.stacked_widget.setCurrentIndex(self.CONTACTS_SCRAPER_SELECTOR))
         layout.addWidget(back_button)
         return widget
-    
+
     def show_cognism_scraper_options(self):
         self.stacked_widget.setCurrentIndex(self.COGNISM_SCRAPER_OPTIONS)
-    
+
     def create_cognism_login_screen(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         header_label = QLabel("Cognism Contact Scraper")
-        header_label.setStyleSheet("font-size: 24px; font-weight: bold; margin: 10px;")
+        header_label.setStyleSheet(
+            "font-size: 24px; font-weight: bold; margin: 10px;")
         header_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(header_label)
         instructions_group = QGroupBox("Instructions")
@@ -1448,7 +1556,8 @@ subprocess.call(command)
         login_instructions.setWordWrap(True)
         instructions_layout.addWidget(login_instructions)
         self.cognism_status = QLabel("Ready to start")
-        self.cognism_status.setStyleSheet("font-size: 14px; color: blue; font-weight: bold; padding: 10px;")
+        self.cognism_status.setStyleSheet(
+            "font-size: 14px; color: blue; font-weight: bold; padding: 10px;")
         self.cognism_status.setAlignment(Qt.AlignCenter)
         instructions_layout.addWidget(self.cognism_status)
         instructions_group.setLayout(instructions_layout)
@@ -1456,70 +1565,85 @@ subprocess.call(command)
         input_group = QGroupBox("Contact Tag Settings")
         input_layout = QFormLayout()
         self.contact_tag_input = QLineEdit()
-        self.contact_tag_input.setPlaceholderText("Enter tag for these contacts (e.g., 'tech-vp', 'finance-director')")
+        self.contact_tag_input.setPlaceholderText(
+            "Enter tag for these contacts (e.g., 'tech-vp', 'finance-director')")
         input_layout.addRow("Contact Tag:", self.contact_tag_input)
         input_group.setLayout(input_layout)
         layout.addWidget(input_group)
         buttons_layout = QHBoxLayout()
         self.run_scraper_button = QPushButton("Launch Browser & Start Process")
-        self.run_scraper_button.setStyleSheet("font-size: 16px; padding: 15px; background-color: #4CAF50; color: white;")
+        self.run_scraper_button.setStyleSheet(
+            "font-size: 16px; padding: 15px; background-color: #4CAF50; color: white;")
         self.run_scraper_button.clicked.connect(self.start_cognism_browser)
         buttons_layout.addWidget(self.run_scraper_button)
         self.start_scraping_button = QPushButton("Start Scraping")
-        self.start_scraping_button.setStyleSheet("font-size: 16px; padding: 15px; background-color: #2196F3; color: white;")
-        self.start_scraping_button.clicked.connect(self.run_cognism_url_scraping)
+        self.start_scraping_button.setStyleSheet(
+            "font-size: 16px; padding: 15px; background-color: #2196F3; color: white;")
+        self.start_scraping_button.clicked.connect(
+            self.run_cognism_url_scraping)
         self.start_scraping_button.setEnabled(False)
         buttons_layout.addWidget(self.start_scraping_button)
         layout.addLayout(buttons_layout)
         back_button = QPushButton("Back to Scraper Options")
         back_button.setStyleSheet("font-size: 14px; padding: 10px;")
-        back_button.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(self.COGNISM_SCRAPER_OPTIONS))
+        back_button.clicked.connect(
+            lambda: self.stacked_widget.setCurrentIndex(self.COGNISM_SCRAPER_OPTIONS))
         layout.addWidget(back_button)
         self.cognism_driver = None
         return widget
-    
+
     def run_cognism_scraper(self):
         self.stacked_widget.setCurrentIndex(self.COGNISM_LOGIN_SCREEN)
         self.cognism_status.setText("Ready to start")
-        self.cognism_status.setStyleSheet("font-size: 14px; color: blue; font-weight: bold; padding: 10px;")
+        self.cognism_status.setStyleSheet(
+            "font-size: 14px; color: blue; font-weight: bold; padding: 10px;")
         self.run_scraper_button.setEnabled(True)
         self.start_scraping_button.setEnabled(False)
-    
+
     def start_cognism_browser(self):
         try:
             import threading
-            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            cognism_dir = os.path.join(project_root, 'src', 'contacts', 'cognism_scraper')
+            project_root = os.path.dirname(
+                os.path.dirname(os.path.abspath(__file__)))
+            cognism_dir = os.path.join(
+                project_root, 'src', 'contacts', 'cognism_scraper')
             print(f"Using Cognism scraper at: {cognism_dir}")
             if not os.path.exists(cognism_dir):
-                QMessageBox.critical(self, "Error", f"Cognism scraper directory not found at: {cognism_dir}")
+                QMessageBox.critical(
+                    self, "Error", f"Cognism scraper directory not found at: {cognism_dir}")
                 return
             env_file = os.path.join(cognism_dir, '.env')
             if not os.path.exists(env_file):
-                project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                project_root = os.path.dirname(
+                    os.path.dirname(os.path.abspath(__file__)))
                 root_env_file = os.path.join(project_root, '.env')
                 if os.path.exists(root_env_file):
                     import shutil
                     shutil.copy2(root_env_file, env_file)
-                    print(f"Copied .env file from {root_env_file} to {env_file}")
+                    print(
+                        f"Copied .env file from {root_env_file} to {env_file}")
                 else:
                     example_env = os.path.join(cognism_dir, 'example.env')
                     if os.path.exists(example_env):
                         import shutil
                         shutil.copy2(example_env, env_file)
                         print(f"Created .env file from example.env")
-            self.cognism_status.setText("Opening browser and waiting for login...")
-            self.cognism_status.setStyleSheet("font-size: 14px; color: orange; font-weight: bold; padding: 10px;")
+            self.cognism_status.setText(
+                "Opening browser and waiting for login...")
+            self.cognism_status.setStyleSheet(
+                "font-size: 14px; color: orange; font-weight: bold; padding: 10px;")
             self.run_scraper_button.setEnabled(False)
             import sys
             original_path = sys.path.copy()
             sys.path.append(cognism_dir)
             sys.path.append(os.path.join(cognism_dir, "src"))
+
             def browser_thread():
                 try:
                     from utils.selenium_setup import initialize_driver
                     from utils.auth import wait_for_manual_login
-                    self.cognism_status.setText("Opening browser and waiting for login...")
+                    self.cognism_status.setText(
+                        "Opening browser and waiting for login...")
                     driver = initialize_driver()
                     self.cognism_driver = driver
                     driver.get("https://app.cognism.com/auth/sign-in")
@@ -1529,10 +1653,12 @@ subprocess.call(command)
                         from selenium.webdriver.support import expected_conditions as EC
                         from config import COGNISM_EMAIL, COGNISM_PASSWORD
                         email_input = WebDriverWait(driver, 15).until(
-                            EC.presence_of_element_located((By.XPATH, "//input[@formcontrolname='email']"))
+                            EC.presence_of_element_located(
+                                (By.XPATH, "//input[@formcontrolname='email']"))
                         )
                         password_input = WebDriverWait(driver, 15).until(
-                            EC.presence_of_element_located((By.XPATH, "//input[@formcontrolname='password']"))
+                            EC.presence_of_element_located(
+                                (By.XPATH, "//input[@formcontrolname='password']"))
                         )
                         email_input.clear()
                         password_input.clear()
@@ -1543,42 +1669,54 @@ subprocess.call(command)
                         print(f"Error filling credentials: {str(e)}")
                     from PyQt5.QtWidgets import QApplication
                     QApplication.processEvents()
-                    self.cognism_status.setText("Browser launched! Complete login if needed. Enter a contact tag and click Start Scraping.")
-                    self.cognism_status.setStyleSheet("font-size: 14px; color: green; font-weight: bold; padding: 10px;")
+                    self.cognism_status.setText(
+                        "Browser launched! Complete login if needed. Enter a contact tag and click Start Scraping.")
+                    self.cognism_status.setStyleSheet(
+                        "font-size: 14px; color: green; font-weight: bold; padding: 10px;")
                     self.start_scraping_button.setEnabled(True)
                 except Exception as e:
                     print(f"Error during browser setup: {str(e)}")
                     self.cognism_status.setText(f"Login failed: {str(e)}")
-                    self.cognism_status.setStyleSheet("font-size: 14px; color: red; font-weight: bold; padding: 10px;")
+                    self.cognism_status.setStyleSheet(
+                        "font-size: 14px; color: red; font-weight: bold; padding: 10px;")
                     self.run_scraper_button.setEnabled(True)
             threading.Thread(target=browser_thread, daemon=True).start()
         except Exception as e:
             self.cognism_status.setText(f"Error: {str(e)}")
-            self.cognism_status.setStyleSheet("font-size: 14px; color: red; font-weight: bold; padding: 10px;")
+            self.cognism_status.setStyleSheet(
+                "font-size: 14px; color: red; font-weight: bold; padding: 10px;")
             self.run_scraper_button.setEnabled(True)
-    
+
     def run_cognism_url_scraping(self):
         try:
             contact_tag = self.contact_tag_input.text().strip()
             if not contact_tag:
                 self.cognism_status.setText("Please enter a contact tag first")
-                self.cognism_status.setStyleSheet("font-size: 14px; color: red; font-weight: bold; padding: 10px;")
+                self.cognism_status.setStyleSheet(
+                    "font-size: 14px; color: red; font-weight: bold; padding: 10px;")
                 return
             if not self.cognism_driver:
-                self.cognism_status.setText("Browser not initialized. Please start the process again.")
-                self.cognism_status.setStyleSheet("font-size: 14px; color: red; font-weight: bold; padding: 10px;")
+                self.cognism_status.setText(
+                    "Browser not initialized. Please start the process again.")
+                self.cognism_status.setStyleSheet(
+                    "font-size: 14px; color: red; font-weight: bold; padding: 10px;")
                 self.run_scraper_button.setEnabled(True)
                 self.start_scraping_button.setEnabled(False)
                 return
             import threading
-            self.cognism_status.setText(f"Scraping contacts with tag: {contact_tag}...")
-            self.cognism_status.setStyleSheet("font-size: 14px; color: orange; font-weight: bold; padding: 10px;")
+            self.cognism_status.setText(
+                f"Scraping contacts with tag: {contact_tag}...")
+            self.cognism_status.setStyleSheet(
+                "font-size: 14px; color: orange; font-weight: bold; padding: 10px;")
             self.start_scraping_button.setEnabled(False)
             import sys
-            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            cognism_dir = os.path.join(project_root, 'src', 'contacts', 'cognism_scraper')
+            project_root = os.path.dirname(
+                os.path.dirname(os.path.abspath(__file__)))
+            cognism_dir = os.path.join(
+                project_root, 'src', 'contacts', 'cognism_scraper')
             sys.path.append(cognism_dir)
             sys.path.append(os.path.join(cognism_dir, "src"))
+
             def scraper_thread():
                 try:
                     try:
@@ -1587,8 +1725,10 @@ subprocess.call(command)
                         navigate_and_scrape(self.cognism_driver, contact_tag)
                         from PyQt5.QtWidgets import QApplication
                         QApplication.processEvents()
-                        self.cognism_status.setText("URLs scraped successfully! Now scraping contact details...")
-                        self.cognism_status.setStyleSheet("font-size: 14px; color: blue; font-weight: bold; padding: 10px;")
+                        self.cognism_status.setText(
+                            "URLs scraped successfully! Now scraping contact details...")
+                        self.cognism_status.setStyleSheet(
+                            "font-size: 14px; color: blue; font-weight: bold; padding: 10px;")
                         print("Starting contact details scraping...")
                         from utils_contacts.database import save_to_db, print_db_path
                         from utils_contacts.scraper import scrape_page
@@ -1598,33 +1738,44 @@ subprocess.call(command)
                         from config import SCRAPING_DELAY
                         import time
                         login_tab = self.cognism_driver.current_window_handle
-                        url_entries = filter_new_urls()
+                        url_entries = filter_new_urls(contact_tag)
                         if not url_entries:
-                            print("⚠️ No new URLs found. All entries already exist in the database.")
+                            print(
+                                "⚠️ No new URLs found. All entries already exist in the database.")
                         else:
                             urls = [entry["url"] for entry in url_entries]
-                            print(f"✅ {len(urls)} new URLs found and ready for processing.")
-                            print(f"Starting to process {len(urls)} URLs in batches")
+                            print(
+                                f"✅ {len(urls)} new URLs found and ready for processing.")
+                            print(
+                                f"Starting to process {len(urls)} URLs in batches")
                             batches = open_new_tabs(self.cognism_driver, urls)
                             for batch_index, tabs in enumerate(batches):
-                                print(f"Processing batch {batch_index+1} with {len(tabs)} tabs")
+                                print(
+                                    f"Processing batch {batch_index+1} with {len(tabs)} tabs")
                                 print(f"Current tab handles: {tabs}")
                                 for tab_index, tab in enumerate(tabs):
                                     try:
-                                        self.cognism_driver.switch_to.window(tab)
+                                        self.cognism_driver.switch_to.window(
+                                            tab)
                                         try:
-                                            entry_index = (batch_index * len(tabs)) + tab_index
+                                            entry_index = (
+                                                batch_index * len(tabs)) + tab_index
                                             if entry_index >= len(url_entries):
-                                                print(f"⚠️ Index {entry_index} is out of range (max: {len(url_entries)-1})")
+                                                print(
+                                                    f"⚠️ Index {entry_index} is out of range (max: {len(url_entries)-1})")
                                                 continue
                                             data_entry = url_entries[entry_index]
                                             current_url = self.cognism_driver.current_url
-                                            print(f"Processing tab URL: {current_url}")
-                                            self.cognism_status.setText(f"Scraping contact {entry_index + 1} of {len(urls)}...")
+                                            print(
+                                                f"Processing tab URL: {current_url}")
+                                            self.cognism_status.setText(
+                                                f"Scraping contact {entry_index + 1} of {len(urls)}...")
                                             QApplication.processEvents()
-                                            extracted_data = scrape_page(self.cognism_driver)
+                                            extracted_data = scrape_page(
+                                                self.cognism_driver)
                                         except Exception as index_error:
-                                            print(f"⚠️ Error accessing data entry: {index_error}")
+                                            print(
+                                                f"⚠️ Error accessing data entry: {index_error}")
                                             continue
                                         if extracted_data and 'data_entry' in locals():
                                             extracted_data.update({
@@ -1653,28 +1804,34 @@ subprocess.call(command)
                                             }
                                             save_to_db(corrected_data)
                                         else:
-                                            print(f"⚠️ No data extracted for URL: {data_entry['url']}")
+                                            print(
+                                                f"⚠️ No data extracted for URL: {data_entry['url']}")
                                         time.sleep(SCRAPING_DELAY)
                                     except Exception as e:
                                         print(f"⚠️ Error processing tab: {e}")
                                 for tab in tabs:
                                     try:
-                                        self.cognism_driver.switch_to.window(tab)
+                                        self.cognism_driver.switch_to.window(
+                                            tab)
                                         self.cognism_driver.close()
                                     except Exception as e:
                                         print(f"⚠️ Error closing tab: {e}")
                                 try:
-                                    self.cognism_driver.switch_to.window(login_tab)
+                                    self.cognism_driver.switch_to.window(
+                                        login_tab)
                                 except Exception as e:
-                                    print(f"⚠️ Error switching back to login tab: {e}")
+                                    print(
+                                        f"⚠️ Error switching back to login tab: {e}")
                             print("✅ Contact scraping completed.")
                     except Exception as e:
                         print(f"Error during scraping: {str(e)}")
                         raise
                     from PyQt5.QtWidgets import QApplication
                     QApplication.processEvents()
-                    self.cognism_status.setText("URL and contact scraping completed successfully!")
-                    self.cognism_status.setStyleSheet("font-size: 14px; color: green; font-weight: bold; padding: 10px;")
+                    self.cognism_status.setText(
+                        "URL and contact scraping completed successfully!")
+                    self.cognism_status.setStyleSheet(
+                        "font-size: 14px; color: green; font-weight: bold; padding: 10px;")
                     self.run_scraper_button.setEnabled(True)
                     self.start_scraping_button.setEnabled(False)
                     if self.cognism_driver:
@@ -1688,7 +1845,8 @@ subprocess.call(command)
                     from PyQt5.QtWidgets import QApplication
                     QApplication.processEvents()
                     self.cognism_status.setText(f"Scraping failed: {str(e)}")
-                    self.cognism_status.setStyleSheet("font-size: 14px; color: red; font-weight: bold; padding: 10px;")
+                    self.cognism_status.setStyleSheet(
+                        "font-size: 14px; color: red; font-weight: bold; padding: 10px;")
                     self.run_scraper_button.setEnabled(True)
                     self.start_scraping_button.setEnabled(True)
                     if self.cognism_driver:
@@ -1700,14 +1858,16 @@ subprocess.call(command)
             threading.Thread(target=scraper_thread, daemon=True).start()
         except Exception as e:
             self.cognism_status.setText(f"Error: {str(e)}")
-            self.cognism_status.setStyleSheet("font-size: 14px; color: red; font-weight: bold; padding: 10px;")
+            self.cognism_status.setStyleSheet(
+                "font-size: 14px; color: red; font-weight: bold; padding: 10px;")
             self.start_scraping_button.setEnabled(True)
-    
+
     def create_contacts_campaigns_menu(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         menu_group = QGroupBox("CONTACTS CAMPAIGNS")
-        menu_group.setStyleSheet("QGroupBox { font-size: 18px; font-weight: bold; }")
+        menu_group.setStyleSheet(
+            "QGroupBox { font-size: 18px; font-weight: bold; }")
         menu_layout = QVBoxLayout()
         select_button = QPushButton("Select Existing Campaign")
         select_button.setStyleSheet("font-size: 16px; padding: 15px;")
@@ -1719,70 +1879,84 @@ subprocess.call(command)
         menu_layout.addWidget(prospector_button)
         back_button = QPushButton("Back to Contacts Menu")
         back_button.setStyleSheet("font-size: 16px; padding: 15px;")
-        back_button.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(self.CONTACTS_MENU))
+        back_button.clicked.connect(
+            lambda: self.stacked_widget.setCurrentIndex(self.CONTACTS_MENU))
         menu_layout.addWidget(back_button)
         menu_group.setLayout(menu_layout)
         layout.addWidget(menu_group)
         return widget
-    
+
     def run_contact_campaign_menu(self):
         self.stacked_widget.setCurrentIndex(self.CONTACTS_CAMPAIGNS_MENU)
-    
+
     def run_contact_campaign_selector(self):
         try:
             import subprocess
             original_dir = os.getcwd()
             try:
-                script_path = os.path.join(contacts_dir, 'run_contact_campaign_gui.py')
+                script_path = os.path.join(
+                    contacts_dir, 'run_contact_campaign_gui.py')
                 if not os.path.exists(script_path):
-                    print(f"Error: Could not find the contact campaign GUI script at {script_path}")
-                    QMessageBox.critical(self, "Error", f"Could not find the contact campaign GUI script at {script_path}")
+                    print(
+                        f"Error: Could not find the contact campaign GUI script at {script_path}")
+                    QMessageBox.critical(
+                        self, "Error", f"Could not find the contact campaign GUI script at {script_path}")
                     return
                 os.chdir(contacts_dir)
                 subprocess.Popen([sys.executable, script_path])
             finally:
                 os.chdir(original_dir)
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Error running contact campaign selector: {str(e)}")
-    
+            QMessageBox.critical(
+                self, "Error", f"Error running contact campaign selector: {str(e)}")
+
     def run_contact_prospector(self):
         try:
             import subprocess
             original_dir = os.getcwd()
             try:
-                script_path = os.path.join(contacts_dir, 'run_contact_prospector.py')
+                script_path = os.path.join(
+                    contacts_dir, 'run_contact_prospector.py')
                 if not os.path.exists(script_path):
-                    print(f"Error: Could not find the contact prospector script at {script_path}")
-                    QMessageBox.critical(self, "Error", f"Could not find the contact prospector script at {script_path}")
+                    print(
+                        f"Error: Could not find the contact prospector script at {script_path}")
+                    QMessageBox.critical(
+                        self, "Error", f"Could not find the contact prospector script at {script_path}")
                     return
                 os.chdir(contacts_dir)
                 subprocess.Popen([sys.executable, script_path])
             finally:
                 os.chdir(original_dir)
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Error running contact prospector: {str(e)}")
-    
+            QMessageBox.critical(
+                self, "Error", f"Error running contact prospector: {str(e)}")
+
     def create_phone_dialer_screen(self):
-        from PyQt5.QtWidgets import (QPushButton, QHBoxLayout, QVBoxLayout, 
-                                   QWidget, QLabel, QComboBox, QGroupBox, QFormLayout)
+        from PyQt5.QtWidgets import (QPushButton, QHBoxLayout, QVBoxLayout,
+                                     QWidget, QLabel, QComboBox, QGroupBox, QFormLayout)
         import sqlite3
         widget = QWidget()
         layout = QVBoxLayout(widget)
         header_label = QLabel("Phone Dialer")
-        header_label.setStyleSheet("font-size: 24px; font-weight: bold; margin: 20px;")
+        header_label.setStyleSheet(
+            "font-size: 24px; font-weight: bold; margin: 20px;")
         header_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(header_label)
         selection_group = QGroupBox("Campaign Selection")
-        selection_group.setStyleSheet("QGroupBox { font-size: 16px; font-weight: bold; }")
+        selection_group.setStyleSheet(
+            "QGroupBox { font-size: 16px; font-weight: bold; }")
         form_layout = QFormLayout()
         self.company_campaign_combo = QComboBox()
         self.company_campaign_combo.setMinimumWidth(300)
-        self.company_campaign_combo.setStyleSheet("font-size: 14px; padding: 8px;")
+        self.company_campaign_combo.setStyleSheet(
+            "font-size: 14px; padding: 8px;")
         form_layout.addRow("Company Campaign:", self.company_campaign_combo)
         self.contact_batch_combo = QComboBox()
         self.contact_batch_combo.setMinimumWidth(300)
-        self.contact_batch_combo.setStyleSheet("font-size: 14px; padding: 8px;")
-        form_layout.addRow("Contact Campaign Batch Tag:", self.contact_batch_combo)
+        self.contact_batch_combo.setStyleSheet(
+            "font-size: 14px; padding: 8px;")
+        form_layout.addRow("Contact Campaign Batch Tag:",
+                           self.contact_batch_combo)
         load_btn = QPushButton("Load Campaigns")
         load_btn.setStyleSheet("font-size: 14px; padding: 8px;")
         load_btn.clicked.connect(self.load_phone_dialer_campaigns)
@@ -1805,15 +1979,17 @@ subprocess.call(command)
         layout.addStretch()
         back_button = QPushButton("Back to Main Menu")
         back_button.setStyleSheet("font-size: 14px; padding: 10px;")
-        back_button.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(self.MAIN_MENU))
+        back_button.clicked.connect(
+            lambda: self.stacked_widget.setCurrentIndex(self.MAIN_MENU))
         layout.addWidget(back_button)
         return widget
-    
+
     def load_phone_dialer_campaigns(self):
         from phone_dialer import PhoneDialerApp
         self.phone_dialer = PhoneDialerApp(parent=self)
-        self.phone_dialer.load_campaigns(self.company_campaign_combo, self.contact_batch_combo)
-    
+        self.phone_dialer.load_campaigns(
+            self.company_campaign_combo, self.contact_batch_combo)
+
     def start_phone_dialer(self):
         from PyQt5.QtWidgets import QMessageBox
         from phone_dialer import PhoneDialerApp
@@ -1821,9 +1997,11 @@ subprocess.call(command)
             self.phone_dialer = PhoneDialerApp(parent=self)
         campaign_id = self.company_campaign_combo.currentData()
         if not campaign_id:
-            QMessageBox.warning(self, "No Campaign Selected", "Please select a company campaign first.")
+            QMessageBox.warning(self, "No Campaign Selected",
+                                "Please select a company campaign first.")
             return
-        campaign_name = self.company_campaign_combo.currentText().split(" - ")[0]
+        campaign_name = self.company_campaign_combo.currentText().split(
+            " - ")[0]
         batch_tag = self.contact_batch_combo.currentData()
         if not batch_tag:
             batch_tag = "all"

@@ -2,32 +2,27 @@
 import sys
 import os
 
-# Set up path for imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
 src_companies_dir = os.path.join(current_dir, 'src_companies')
 if src_companies_dir not in sys.path:
     sys.path.insert(0, src_companies_dir)
 
-# Set up project root path for database access
-project_root = os.path.dirname(os.path.dirname(current_dir))
-os.environ['PROJECT_ROOT'] = project_root
+os.environ['PROJECT_ROOT'] = os.path.dirname(os.path.dirname(current_dir))
+os.environ['DB_PATH'] = r"/Users/anthonyhurtado/Jobs/personal/others/Elias_CRM/databases/database.db"
 
-# Import the scraper
 from clutch_scraper import run_clutch_scraper
 
-# Run the scraper with the specified parameters
 run_clutch_scraper(
-    startUrls=['https://clutch.co/us/developers/artificial-intelligence?agency_size=250+-+999'],
-    maxItems=3,
+    startUrls=['https://clutch.co/web-developers'],
+    maxItems=2,
     excludePortfolio=True,
     includeReviews=False,
     maxReviewsPerCompany=0,
-    batch_tag="steven",
-    batch_id="663b6cc2-0845-4a15-8f79-463162b66fd2"
+    batch_tag="clutch_scrape_test",
+    batch_id="22e1c606-e957-4514-9e0d-7afa0faffe68"
 )
 
-# Show completion message
 print("\nScraper completed successfully!")
-print("Batch ID: 663b6cc2-0845-4a15-8f79-463162b66fd2")
+print("Batch ID: 22e1c606-e957-4514-9e0d-7afa0faffe68")
 input("Press Enter to continue...")
                         

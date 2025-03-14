@@ -2,30 +2,34 @@ import os
 import sqlite3
 from sqlite3 import Error
 
+
 def check_for_database():
     # DEBUG OUTPUT
-    print(f"[DEBUG] Check_for_database: Current working directory: {os.getcwd()}")
+    print(
+        f"[DEBUG] Check_for_database: Current working directory: {os.getcwd()}")
     print(f"[DEBUG] __file__: {__file__}")
     print(f"[DEBUG] abspath(__file__): {os.path.abspath(__file__)}")
-    print(f"[DEBUG] Environment vars: PROJECT_ROOT={os.environ.get('PROJECT_ROOT')}")
-    
+    print(
+        f"[DEBUG] Environment vars: PROJECT_ROOT={os.environ.get('PROJECT_ROOT')}")
+
     # HARDCODED PATH FOR WINDOWS - TRY THIS FIRST
-    windows_path = "C:\\Users\\EliasTsoukatos\\Documents\\software_code\\Elias_CRM\\databases\\database.db"
+    windows_path = "/Users/anthonyhurtado/Jobs/personal/others/Elias_CRM/databases/database.db"
     windows_folder = os.path.dirname(windows_path)
     print(f"🔍 Trying hardcoded Windows database path: {windows_path}")
-    
+
     # Try hardcoded path first for Windows
     try:
         if not os.path.exists(windows_folder):
             os.makedirs(windows_folder, exist_ok=True)
             print(f"✅ Created hardcoded database directory: {windows_folder}")
-        
+
         # Test connection with hardcoded path
         conn = sqlite3.connect(windows_path)
         cursor = conn.cursor()
         conn.close()
-        print(f"✅ Successfully verified database at hardcoded path: {windows_path}")
-        # If we get here, we found a working database - use this folder 
+        print(
+            f"✅ Successfully verified database at hardcoded path: {windows_path}")
+        # If we get here, we found a working database - use this folder
         db_folder = windows_folder
         db_path = windows_path
         # Save this for future use
@@ -34,29 +38,32 @@ def check_for_database():
         return create_tables(db_path)
     except Exception as e:
         print(f"⚠️ Hardcoded path failed: {e}, trying next option")
-    
+
     # Get project root from environment variable if set, otherwise calculate
     project_root = os.environ.get('PROJECT_ROOT')
     print(f"[DEBUG] PROJECT_ROOT from env: {project_root}")
-    
+
     if not project_root:
         # Fallback to calculating the path
         # Make sure to use the correct path - should be the parent of src
-        script_dir = os.path.dirname(os.path.abspath(__file__))  # src_companies dir
-        src_companies_dir = os.path.dirname(script_dir)          # companies dir
+        script_dir = os.path.dirname(
+            os.path.abspath(__file__))  # src_companies dir
+        src_companies_dir = os.path.dirname(
+            script_dir)          # companies dir
         companies_dir = os.path.dirname(src_companies_dir)       # src dir
         project_root = os.path.dirname(companies_dir)            # project root
         print(f"[DEBUG] Calculated project_root: {project_root}")
-    
+
     # EXPLICIT WINDOWS FIX
     if os.name == 'nt' and '\\' in project_root:  # Windows path
         project_root = project_root.replace("/", "\\")
-        print(f"[DEBUG] Windows path detected, fixed project_root: {project_root}")
-    
+        print(
+            f"[DEBUG] Windows path detected, fixed project_root: {project_root}")
+
     # Ensure we're using the database in the project root
     db_folder = os.path.join(project_root, 'databases')
     db_path = os.path.join(db_folder, 'database.db')
-    
+
     print(f"🔍 Attempting to use database at: {db_path}")
     print(f"[DEBUG] Database folder: {db_folder}")
     print(f"[DEBUG] Folder exists: {os.path.exists(db_folder)}")
@@ -75,31 +82,38 @@ def check_for_database():
             db_folder = os.path.join(user_home, 'databases')
             db_path = os.path.join(db_folder, 'database.db')
             print(f"🔍 Using alternate database path: {db_path}")
-            
+
             if not os.path.exists(db_folder):
                 try:
                     os.makedirs(db_folder, exist_ok=True)
-                    print(f"✅ Created alternate database directory: {db_folder}")
+                    print(
+                        f"✅ Created alternate database directory: {db_folder}")
                 except Exception as e2:
-                    print(f"⚠️ Could not create alternate database folder: {e2}")
-                    
+                    print(
+                        f"⚠️ Could not create alternate database folder: {e2}")
+
                     # ONE FINAL ATTEMPT - TRY APPDATA FOLDER FOR WINDOWS
                     if os.name == 'nt':  # Windows
                         try:
                             appdata = os.environ.get('APPDATA', '')
                             print(f"[DEBUG] Trying APPDATA folder: {appdata}")
                             if appdata:
-                                app_db_dir = os.path.join(appdata, 'Elias_CRM', 'databases')
+                                app_db_dir = os.path.join(
+                                    appdata, 'Elias_CRM', 'databases')
                                 if not os.path.exists(app_db_dir):
                                     os.makedirs(app_db_dir, exist_ok=True)
-                                    print(f"✅ Created APPDATA database directory: {app_db_dir}")
+                                    print(
+                                        f"✅ Created APPDATA database directory: {app_db_dir}")
                                 db_folder = app_db_dir
-                                db_path = os.path.join(app_db_dir, 'database.db')
-                                print(f"🔍 Using APPDATA database path: {db_path}")
+                                db_path = os.path.join(
+                                    app_db_dir, 'database.db')
+                                print(
+                                    f"🔍 Using APPDATA database path: {db_path}")
                         except Exception as e3:
                             print(f"⚠️ APPDATA database creation failed: {e3}")
-    
+
     return create_tables(db_path)
+
 
 def create_tables(db_path):
     """Create the required tables in the database"""
@@ -309,7 +323,8 @@ def create_tables(db_path):
         }
 
         for table_name, create_statement in tables.items():
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
             result = cursor.fetchone()
             if result:
                 # Commented out to reduce console output
@@ -332,6 +347,7 @@ def create_tables(db_path):
             conn.close()
             # Commented out to reduce console output
             # print("✅ Database connection closed successfully.")
+
 
 if __name__ == "__main__":
     check_for_database()

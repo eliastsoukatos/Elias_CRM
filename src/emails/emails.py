@@ -2,10 +2,11 @@ import sqlite3
 import os
 import datetime
 
+
 def main():
     # Ruta de la base de datos
-    db_path = r"C:\Users\EliasTsoukatos\Documents\software_code\Elias_CRM\databases\database.db"
-    
+    db_path = "/Users/anthonyhurtado/Jobs/personal/others/Elias_CRM/databases/database.db"
+
     # Conectar a la base de datos
     try:
         conn = sqlite3.connect(db_path)
@@ -73,17 +74,20 @@ def main():
     print("\nTimezones disponibles:")
     for tz in unique_timezones:
         print(" -", tz)
-    
+
     # Solicitar al usuario que seleccione los timezones (o escribir 'todos')
-    tz_input = input("\nSeleccione timezones separados por coma o escriba 'todos' para seleccionar todos: ")
+    tz_input = input(
+        "\nSeleccione timezones separados por coma o escriba 'todos' para seleccionar todos: ")
     if tz_input.lower() == 'todos':
         selected_timezones = unique_timezones
     else:
-        selected_timezones = [tz.strip() for tz in tz_input.split(",") if tz.strip()]
+        selected_timezones = [tz.strip()
+                              for tz in tz_input.split(",") if tz.strip()]
 
     # Filtrar los contactos según los timezones seleccionados
-    filtered_contacts = [contact for contact in contacts if contact[2] in selected_timezones]
-    
+    filtered_contacts = [
+        contact for contact in contacts if contact[2] in selected_timezones]
+
     if not filtered_contacts:
         print("No se encontraron contactos con los timezones seleccionados.")
         conn.close()
@@ -110,6 +114,7 @@ def main():
         print("Error al escribir el archivo:", e)
 
     conn.close()
+
 
 if __name__ == "__main__":
     main()

@@ -10,7 +10,7 @@ os.environ["PROJECT_ROOT"] = current_dir
 
 # Add hardcoded database path for Windows
 # All database code will first try this path
-os.environ["DB_PATH"] = "C:\\Users\\EliasTsoukatos\\Documents\\software_code\\Elias_CRM\\databases\\database.db"
+os.environ["DB_PATH"] = "/Users/anthonyhurtado/Jobs/personal/others/Elias_CRM/databases/database.db"
 
 # Suppress PyQt warnings
 os.environ["QT_LOGGING_RULES"] = "*.debug=false;qt.qpa.*=false;qt.network.*=false"
@@ -20,27 +20,28 @@ debug_mode = os.environ.get("CRM_DEBUG", "0") == "1"
 if not debug_mode:
     # Filter out warnings in non-debug mode
     warnings.filterwarnings("ignore")
-    
+
     # Save original stdout and stderr
     original_stdout = sys.stdout
     original_stderr = sys.stderr
-    
+
     # Redirect stdout/stderr to null device (suppress output)
     # Use platform-independent method with os.devnull
     null_device = open(os.devnull, 'w')
     sys.stdout = null_device
     sys.stderr = null_device
 
+
 def main():
     try:
         # First initialize the app (database, migrations, etc.)
         initialize_app()
-        
+
         # Restore stdout/stderr for the menu interaction
         if not debug_mode:
             sys.stdout = original_stdout
             sys.stderr = original_stderr
-        
+
         # Then launch the main menu
         start_app_menu()
     except Exception as e:
@@ -48,10 +49,11 @@ def main():
         if not debug_mode:
             sys.stdout = original_stdout
             sys.stderr = original_stderr
-        
+
         print(f"Error: {e}")
         if debug_mode:
             raise  # Re-raise the exception in debug mode
+
 
 if __name__ == "__main__":
     main()

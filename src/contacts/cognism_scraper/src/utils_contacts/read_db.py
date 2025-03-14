@@ -1,10 +1,11 @@
 import sqlite3
 from utils.create_database import get_db_path
 
-def get_urls_from_db():
+
+def get_urls_from_db(contact_tag):
     """
     Retrieves all URLs from the 'contacts_cognism_urls' table in the database.db database.
-    
+
     :return: A list of dictionaries [{segment, url, timestamp}, ...]
     """
     try:
@@ -12,7 +13,8 @@ def get_urls_from_db():
         cursor = conn.cursor()
 
         # Use the new table name and field names
-        cursor.execute("SELECT contact_id, contact_tag, url, timestamp FROM contacts_cognism_urls")
+        cursor.execute(
+            "SELECT contact_id, contact_tag, url, timestamp FROM contacts_cognism_urls WHERE contact_tag = ?", (contact_tag,))
         rows = cursor.fetchall()
         conn.close()
 
@@ -21,7 +23,8 @@ def get_urls_from_db():
             return []
 
         # Map contact_tag to segment for backward compatibility and include contact_id
-        urls = [{"contact_id": row[0], "segment": row[1], "url": row[2], "timestamp": row[3]} for row in rows]
+        urls = [{"contact_id": row[0], "segment": row[1],
+                 "url": row[2], "timestamp": row[3]} for row in rows]
         print(f"✅ Retrieved {len(urls)} URLs from contacts_cognism_urls table")
         return urls
 
@@ -31,7 +34,8 @@ def get_urls_from_db():
         try:
             import csv
             import os
-            csv_files = [f for f in os.listdir() if f.startswith("cognism_urls_") and f.endswith(".csv")]
+            csv_files = [f for f in os.listdir() if f.startswith(
+                "cognism_urls_") and f.endswith(".csv")]
             if csv_files:
                 latest_csv = max(csv_files)
                 print(f"📄 Found CSV backup: {latest_csv}")
@@ -41,7 +45,8 @@ def get_urls_from_db():
                     next(reader)  # Skip header
                     for row in reader:
                         if len(row) >= 4:
-                            urls.append({"segment": row[1], "url": row[2], "timestamp": row[3]})
+                            urls.append(
+                                {"segment": row[1], "url": row[2], "timestamp": row[3]})
                 print(f"✅ Loaded {len(urls)} URLs from CSV backup")
                 return urls
         except Exception as csv_error:
