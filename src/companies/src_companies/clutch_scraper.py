@@ -1,6 +1,7 @@
 from apify_client import ApifyClient
 from preprocessor import preprocessor
 
+
 def run_clutch_scraper(startUrls, maxItems, excludePortfolio, includeReviews, maxReviewsPerCompany, batch_tag, batch_id):
     try:
         # Validación de parámetros
@@ -18,9 +19,9 @@ def run_clutch_scraper(startUrls, maxItems, excludePortfolio, includeReviews, ma
         if not isinstance(includeReviews, bool):
             raise ValueError("includeReviews must be boolean.")
 
-        client = ApifyClient("apify_api_udzZbFR9UMrpwm4W5cefPGfRksMsI02sedK4")
+        client = ApifyClient("apify_api_s5EW9X8I8vaqyw4TsDveSU5nGoWiMS4rETrw")
         print("Apify client initialized.")
-        
+
         run_input = {
             "customMapFunction": "(object) => { return object }",
             "excludePortfolio": excludePortfolio,
@@ -47,6 +48,7 @@ def run_clutch_scraper(startUrls, maxItems, excludePortfolio, includeReviews, ma
         print(f"Scraper completed for batch_id: {batch_id}")
     except Exception as e:
         print(f"Error running scraper: {e}")
+
 
 if __name__ == '__main__':
     run_clutch_scraper(
